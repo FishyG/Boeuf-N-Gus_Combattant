@@ -15,40 +15,21 @@ Inclure les librairies de functions que vous voulez utiliser
 #define PULSES_LEFT 1700
 #define PULSES_RIGHT 1700
 
-#define PIN_5KHZ      A0       
 // ---- Seuils ---- base sur 3,2V min : 3,2 / 5 * 1024 = 655, max : 3,49 / 5 * 1024 = 714
-#define SEUIL_SIFFLET 550
-#define MAX_SIFFLET   714
 #define pin_rouge 49
 #define pin_vert 48
 
-#define distance 0.495
-#define distance_1m 1
+#define distance_canyon 0.5
 
 // put function declarations here:
-char Va_Nord(char orientation);
-char Va_Ouest(char orientation);
-char Va_Sud(char orientation);
-char Va_Est(char orientation);
-void fonction_futur_pos();
-int deja_alle();
-void tableau_post_tape();
-void tableau_post_mur();
-void tableau_post_historique();
-void ajouter_position_actuelle();
 void detection_mur();
-void enlever_derniere();
 void updatePI();
 void printDebug();
 void moveDistance(float distance_m);
-void turnLeft90();
-void turnRight90();
-bool sifflet5kHz();
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
-  TIMER_ID_PID,
-  TIMER_ID_DEBUG,
+  TIMER_ID_PID
 };
 
 typedef struct {
@@ -106,11 +87,6 @@ void setup() {
   SOFT_TIMER_SetRepetition(TIMER_ID_PID, -1);
   SOFT_TIMER_Enable(TIMER_ID_PID);
 
-  SOFT_TIMER_SetCallback(TIMER_ID_DEBUG, printDebug);
-  SOFT_TIMER_SetDelay(TIMER_ID_DEBUG, 500);
-  SOFT_TIMER_SetRepetition(TIMER_ID_DEBUG, -1);
-  //SOFT_TIMER_Enable(TIMER_ID_DEBUG);
-
   delay(10);
 
   Serial.println("Waiting...");
@@ -122,113 +98,6 @@ void setup() {
 }
 
 void loop() {
-  if (pos[1] < 10) {
-    Serial.print("Pos: ");
-	Serial.println(pos[1]);
-	int deplacement_fait = 0;
-	direction_possible[0] = 1;
-    direction_possible[1] = 1;
-    direction_possible[2] = 1;
-    direction_possible[3] = 1;
-        
-    ajouter_position_actuelle();
-    tableau_post_tape();
-        
-    while (deplacement_fait == 0) {
-			
-			if (direction_possible[0] == 1) {
-        Serial.println("Doing 1");
-				ori = Va_Nord(ori);
-				detection_mur();
-        Serial.print("Mur: ");
-        Serial.println(mur);
-				tableau_post_mur();
-				fonction_futur_pos();
-				tableau_post_historique();
-        for (int i = 0; i < 4; i++){
-        Serial.print(direction_possible[i]);}
-        Serial.println("");
-			
-				if (direction_possible[0] == 1){
-          Serial.println("Doing move 1");
-					moveDistance(distance_1m);
-          Serial.println("Done");
-					pos[1]++;
-					deplacement_fait++;
-					break;
-				}
-			}
-		  if (direction_possible[1] == 1) {
-				Serial.println("Doing 2");
-        ori = Va_Est(ori);
-				detection_mur();
-        Serial.print("Mur: ");
-        Serial.println(mur);
-				tableau_post_mur();
-				fonction_futur_pos();
-				tableau_post_historique();
-        for (int i = 0; i < 4; i++){
-        Serial.print(direction_possible[i]);}
-        Serial.println("");  
-
-				if (direction_possible[1] == 1){
-          Serial.println("Doing move 2");
-					moveDistance(distance);
-          Serial.println("Done");
-					pos[0]++;
-					deplacement_fait++;
-          break;
-        }
-			}
-			if (direction_possible[2] == 1) {
-				Serial.println("Doing 3");
-        ori = Va_Ouest(ori);
-				detection_mur();
-        Serial.print("Mur: ");
-        Serial.println(mur);
-				tableau_post_mur();
-				fonction_futur_pos();
-				tableau_post_historique();
-        for (int i = 0; i < 4; i++){
-        Serial.print(direction_possible[i]);}
-			  Serial.println("");
-				if (direction_possible[2] == 1){
-					Serial.println("Doing move 3");
-          moveDistance(distance);
-          Serial.println("Done");
-					pos[0]--;
-					deplacement_fait++;
-          break;
-				}
-			}
-			if (direction_possible[3] == 1) {
-				Serial.println("Doing 4");
-        ori = Va_Sud(ori);
-				detection_mur();
-        Serial.println(mur);
-				tableau_post_mur();
-				fonction_futur_pos();
-				tableau_post_historique();
-        for (int i = 0; i < 4; i++){
-        Serial.print(direction_possible[i]);}
-			  Serial.println("");
-				if (direction_possible[3] == 1){
-					Serial.println("Doing move 4");
-          moveDistance(distance);
-					pos[1]--;
-					deplacement_fait++;
-          break;
-				}
-			}
-			//else {
-      //  Serial.println("Enlever last");
-			//	enlever_derniere();
-			//}
-      SOFT_TIMER_Update();
-		}
-	}
-	else {
-  }
 }
 
 void detection_mur(){
