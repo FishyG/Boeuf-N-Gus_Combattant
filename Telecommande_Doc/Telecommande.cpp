@@ -44,6 +44,6 @@ int main (void)
 
     if (DegitalRead(BOUTON2))
         {
-
+            // pareil a en bouton 1 avec un sequence differente
         }
 }
