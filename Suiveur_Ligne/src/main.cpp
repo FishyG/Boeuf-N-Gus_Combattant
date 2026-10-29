@@ -15,13 +15,16 @@ Inclure les librairies de functions que vous voulez utiliser
 #define PULSES_LEFT 1700
 #define PULSES_RIGHT 1700
 
-// ---- Seuils ---- base sur 3,2V min : 3,2 / 5 * 1024 = 655, max : 3,49 / 5 * 1024 = 714
 #define pin_rouge 49
 #define pin_vert 48
 
-#define distance_canyon 0.5
+#define distance 0.495
+#define distance_1m 0.98
 
-// put function declarations here:
+bool cherche_droit;
+bool apres_canyon;
+
+//. les defs de functions, ils sont ici
 void detection_mur();
 void updatePI();
 void printDebug();
@@ -29,7 +32,8 @@ void moveDistance(float distance_m);
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
-  TIMER_ID_PID
+  TIMER_ID_PID,
+  TIMER_ID_DEBUG,
 };
 
 typedef struct {
@@ -44,7 +48,7 @@ typedef struct {
 // Si vous avez a modifier les valeur de PID, elles vont ici
 MotorParams motor_left = {
   .kp = 0.0004,
-  .ki = 0.000006,
+  .ki = 0.000002,
 
   .integral = 0,
   .speed = 0,
@@ -54,21 +58,13 @@ MotorParams motor_left = {
 
 MotorParams motor_right = {
   .kp = 0.0004,
-  .ki = 0.000006,
+  .ki = 0.000002,
 
   .integral = 0,
   .speed = 0,
   .total_pulses = 0,
   .target_pulses = 0
 };
-
-char ori = 'N';
-int pos[4] = {2,1,0,0};
-int direction_possible[4];
-int futur_pos[4];
-int map_deja_alle[30][4];
-int nb_deja_alle = 0;
-int mur = 0;
 
 void setup() {
   BoardInit();
@@ -87,40 +83,74 @@ void setup() {
   SOFT_TIMER_SetRepetition(TIMER_ID_PID, -1);
   SOFT_TIMER_Enable(TIMER_ID_PID);
 
+  SOFT_TIMER_SetCallback(TIMER_ID_DEBUG, printDebug);
+  SOFT_TIMER_SetDelay(TIMER_ID_DEBUG, 500);
+  SOFT_TIMER_SetRepetition(TIMER_ID_DEBUG, -1);
+  //SOFT_TIMER_Enable(TIMER_ID_DEBUG);
+  cherche_droit = 1;
+  apres_canyon = 0;
+
   delay(10);
 
   Serial.println("Waiting...");
-  while ((!ROBUS_IsBumper(REAR)) && !sifflet5kHz()) {
+  while (!ROBUS_IsBumper(REAR)) {
     delay(20);
     SOFT_TIMER_Update();
   }
   Serial.println("Going!");
 }
 
+
 void loop() {
-}
+    int u1 = analogRead(A1);
+    int u2 = analogRead(A2);
+    int u3 = analogRead(A3);
+//	Serial.print("U1: ");
+//    Serial.println(u1);
+//	Serial.print("U2: ");
+//    Serial.println(u2);
+//	Serial.print("U3: ");
+//    Serial.println(u3);
+//	Serial.println("");
 
-void detection_mur(){
-	int led_rouge;
-	int led_verte;
-  
-  for (int i = 0; i < 300; i++)
-  {
-    delay(2);
-    SOFT_TIMER_Update();
-  }
-
-  led_rouge = digitalRead(pin_rouge);
-  led_verte = digitalRead(pin_vert);
-  Serial.print("Mur: ");
-	if (led_rouge == LOW && led_verte == LOW){
-		mur = 1;
-    Serial.println("yes");
+	if (u2 > 400) {
+		MOTOR_SetSpeed(LEFT, 0.2);
+		MOTOR_SetSpeed(RIGHT, 0.2);	/* code */
+		apres_canyon = 0;
+		if (u1 > 400 && u3 > 400) {
+			ENCODER_Reset(LEFT);
+			ENCODER_Reset(RIGHT);
+			moveDistance(0.59);
+			for (int i = 0; i < 200; i++)
+			{
+				delay(10);
+				SOFT_TIMER_Update();
+			}
+			MOTOR_SetSpeed(LEFT, 0);
+			MOTOR_SetSpeed(RIGHT, 0);
+			apres_canyon = 1;
+		}
+	} else if (u1 > 400) {
+		MOTOR_SetSpeed(LEFT, 0.1);
+		MOTOR_SetSpeed(RIGHT, 0.4);
+		apres_canyon = 0;
+	} else if (u3 > 400) {
+		MOTOR_SetSpeed(LEFT, 0.4);
+		MOTOR_SetSpeed(RIGHT, 0.1);
+		apres_canyon = 0;
 	} else {
-    mur = 0;
-    Serial.println("no");
-  }
-  
+		if (cherche_droit && apres_canyon) {
+			MOTOR_SetSpeed(LEFT, 0.4);
+			MOTOR_SetSpeed(RIGHT, 0.0);
+			delay(100);
+			cherche_droit = 0;
+		} else if (!cherche_droit && apres_canyon) {
+			MOTOR_SetSpeed(LEFT, 0.0);
+			MOTOR_SetSpeed(RIGHT, 0.4);
+			delay(200);
+		}
+		
+	}
 }
 
 
@@ -155,85 +185,24 @@ void updatePI() {
   MOTOR_SetSpeed(RIGHT, motor_right.speed);
 }
 
-void turnLeft90() {
-  Serial.println("Running turn left");
-  int32_t target_turn_pulses = PULSES_LEFT;
+void printDebug() {
+  Serial.print("L total: ");
+  Serial.print(motor_left.total_pulses);
 
-  motor_left.total_pulses = 0;
-  motor_right.total_pulses = 0;
+  Serial.print(" | L integral: ");
+  Serial.print(motor_left.integral);
 
-  motor_left.integral = 0;
-  motor_right.integral = 0;
+  Serial.print(" | L speed: ");
+  Serial.print(motor_left.speed);
 
-  while (-motor_left.total_pulses < target_turn_pulses || motor_right.total_pulses < target_turn_pulses) {
-    int32_t avg_pulses = (-motor_left.total_pulses + motor_right.total_pulses) / 2;
-    int32_t remaining = target_turn_pulses - avg_pulses;
+  Serial.print(" | R total: ");
+  Serial.print(motor_right.total_pulses);
 
-    if (remaining > 500) {
-      motor_left.target_pulses = -200;
-      motor_right.target_pulses = 200;
-    }
-    else if (remaining > 200) {
-      motor_left.target_pulses = -120;
-      motor_right.target_pulses = 120;
-    }
-    else {
-      motor_left.target_pulses = -60;
-      motor_right.target_pulses = 60;
-    }
+  Serial.print(" | R integral: ");
+  Serial.print(motor_right.integral);
 
-    SOFT_TIMER_Update();
-  }
-
-  motor_left.target_pulses = 0;
-  motor_right.target_pulses = 0;
-  for (int i = 0; i < 250; i++)
-  {
-    delay(2);
-    SOFT_TIMER_Update();
-  }
-
-  Serial.println("done left");
-}
-
-void turnRight90() {
-  Serial.println("Running turn right");
-  int32_t target_turn_pulses = PULSES_RIGHT;
-
-  motor_left.total_pulses = 0;
-  motor_right.total_pulses = 0;
-
-  motor_left.integral = 0;
-  motor_right.integral = 0;
-
-  while ( motor_left.total_pulses < target_turn_pulses || -motor_right.total_pulses < target_turn_pulses) {
-    int32_t avg_pulses = (motor_left.total_pulses - motor_right.total_pulses) / 2;
-    int32_t remaining = target_turn_pulses - avg_pulses;
-
-    if (remaining > 500) {
-      motor_left.target_pulses = 200;
-      motor_right.target_pulses = -200;
-    }
-    else if (remaining > 200) {
-      motor_left.target_pulses = 120;
-      motor_right.target_pulses = -120;
-    }
-    else {
-      motor_left.target_pulses = 60;
-      motor_right.target_pulses = -60;
-    }
-
-    SOFT_TIMER_Update();
-  }
-  
-  motor_left.target_pulses = 0;
-  motor_right.target_pulses = 0;
-  for (int i = 0; i < 250; i++)
-  {
-    delay(2);
-    SOFT_TIMER_Update();
-  }
-  Serial.println("done right");
+  Serial.print(" | R speed: ");
+  Serial.println(motor_right.speed);
 }
 
 void moveDistance(float distance_m) {
@@ -248,12 +217,12 @@ void moveDistance(float distance_m) {
   while (motor_left.total_pulses < distance_target || motor_right.total_pulses < distance_target) {
     int32_t remaining = distance_target - (motor_left.total_pulses + motor_right.total_pulses) / 2;
     if (remaining > 2000) {
-      motor_left.target_pulses = 600;
-      motor_right.target_pulses = 600;
-    }
-    else if (remaining > 1000) {
       motor_left.target_pulses = 400;
       motor_right.target_pulses = 400;
+    }
+    else if (remaining > 1000) {
+      motor_left.target_pulses = 200;
+      motor_right.target_pulses = 200;
     } else {
       motor_left.target_pulses = 150;
       motor_right.target_pulses = 150;
