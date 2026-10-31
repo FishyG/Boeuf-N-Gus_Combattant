@@ -16,6 +16,7 @@ Date: 2026-10-30
 // CONSTANTES
 const uint8_t ADRESSE_ATTENDUE = 0x17;
 const uint8_t CMD_START = 0x01;
+const uint8_t CMD_SLEEP = 0x02;
 
 void setup()
 {
@@ -49,11 +50,22 @@ void loop()
       Serial.println(" reçue");
       // 3 buzz pour le start
       // TODO: ajouter un switch pour les 2 commandes que le robot peut recevoir
-      if (commande == CMD_START) {
-        for (int i = 0; i < 3; i++) {
-          AX_BuzzerON(1000, 150);
-          delay(300);
-        }
+      switch (commande)
+      {
+        case CMD_START:
+          Serial.println("Start le bot");
+          for (int i = 0; i < 3; i++) {
+            AX_BuzzerON(1000, 150);
+            delay(300);
+          }
+          break;
+        case CMD_SLEEP:
+          Serial.println("Awake le bot");
+          for (int i = 0; i < 6; i++) {
+            AX_BuzzerON(1000, 75);
+            delay(150);
+          }
+          break;
       }
     }
     else
