@@ -41,7 +41,16 @@ void envoyer_start()
   Serial.println(message, HEX);
   delay(500);
 }
-
+void envoyer_reveille()
+{
+  uint32_t message = messageNEC(0x17, 0x02);
+  digitalWrite(LED_VERTE, LOW);
+  irsend.sendNEC(message, 32);
+  digitalWrite(LED_VERTE, HIGH);
+  Serial.print("Envoyé : 0x");
+  Serial.println(message, HEX);
+  delay(500);
+}
 
 void setup()
 {
@@ -59,12 +68,21 @@ void setup()
 
 void loop() 
 {
-  // TODO: Ajuster le code pour prendre en compte les 2 boutons
-  int etat_actuel = digitalRead(BOUTON_START);
+  bool bouton_start_appuye = (digitalRead(BOUTON_START) == LOW);
+  bool bouton_sleep_appuye = (digitalRead(BOUTON_SLEEP) == LOW);
+  int etat_actuel = bouton_start_appuye || bouton_sleep_appuye ? LOW : HIGH;
 
-  if (etat_actuel == LOW && etat_precedent == HIGH) {
-    envoyer_start();
+
+  if (etat_actuel == LOW && etat_precedent == HIGH) 
+  {
+    if (bouton_start_appuye) 
+    {
+      envoyer_start();
+    } 
+    else if (bouton_sleep_appuye) 
+    {
+      envoyer_reveille();
+    }
   }
-
   etat_precedent = etat_actuel;
 }

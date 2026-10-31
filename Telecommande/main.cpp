@@ -1,87 +1,88 @@
-/*/*=======================================================================================
+/*
+Projet: Boeuf-N-Gus_Combattant_Telecommande
+Equipe: P23
+Auteurs:  
+          Thomas Blanchard
+          Xavier Dupuis  
+          Christian Tamba Tene
+Description: Code de la telecommande NEC pour activer le robot
+Date: 2026-10-30
+*/
 
-Programmation pour la telecommande du projet pour l'epreuve du combattant
-Auteur: Thomas Blanchard
-Version 0.0.0 
-Date: 2026-10-28
+#define SEND_NEC
 
-=========================================================================================*/
 #include <LibRobus.h>
 #include <Arduino.h>
-#include <stdio.h>
-#include <IRremote.hpp>
 
 
-/* Les constantes sont identifie ici */
+const int LED_ROUGE = 22;
+const int LED_VERTE = 24;
+const int BOUTON_START = 30;
+const int BOUTON_SLEEP = 31;
 
-#define FREQUENCE 38000
-#define TEMPBIT1  0.002250
-#define TEMPBIT0  0.001125
-#define BOUTON1 30
-#define BOUTON2 31
-#define TRANSISTOR 41
-#define ALIMENTATION 51
-#define VOYANTCOMMANDE 53
-#define COMAND1 0x34
-#define COMAND2 0x35
-#define ADDRESS 0x00
+IRsend irsend;
+int etat_precedent;
 
-// put function declarations here:
-int myFunction(int, int);
+uint32_t messageNEC(uint8_t adresse, uint8_t commande)
+{
+  return ((uint32_t)adresse << 24)
+       | ((uint32_t)(uint8_t)~adresse << 16)
+       | ((uint32_t)commande << 8)
+       | (uint8_t)~commande;
+}
+
+void envoyer_start()
+{
+  uint32_t message = messageNEC(0x17, 0x01);
+  digitalWrite(LED_VERTE, LOW);
+  irsend.sendNEC(message, 32);
+  digitalWrite(LED_VERTE, HIGH);
+  Serial.print("Envoyé : 0x");
+  Serial.println(message, HEX);
+  delay(500);
+}
+void envoyer_reveille()
+{
+  uint32_t message = messageNEC(0x17, 0x02);
+  digitalWrite(LED_VERTE, LOW);
+  irsend.sendNEC(message, 32);
+  digitalWrite(LED_VERTE, HIGH);
+  Serial.print("Envoyé : 0x");
+  Serial.println(message, HEX);
+  delay(500);
+}
 
 void setup()
 {
   BoardInit();
 
-  pinMode(BOUTON1, INPUT);
-  pinMode(BOUTON2, INPUT);
-  pinMode(TRANSISTOR, OUTPUT); 
-  pinMode(ALIMENTATION, OUTPUT);
-  pinMode(VOYANTCOMMANDE , OUTPUT);
+  digitalWrite(LED_VERTE, HIGH);
+  pinMode(LED_VERTE, OUTPUT);
 
+  pinMode(LED_ROUGE, OUTPUT);
+  digitalWrite(LED_ROUGE, LOW);
+
+  pinMode(BOUTON_START, INPUT);
+  pinMode(BOUTON_SLEEP, INPUT);
+  etat_precedent = HIGH;
 }
 
 void loop() 
 {
-  // put your main code here, to run repeatedly:;
-  digitalWrite(ALIMENTATION, 1);
-  if (digitalRead(BOUTON1))
-  { 
+  int bouton_start_appuye = (digitalRead(BOUTON_START) == LOW);
+  int bouton_sleep_appuye = (digitalRead(BOUTON_SLEEP) == LOW);
+  int etat_actuel = bouton_start_appuye || bouton_sleep_appuye ? LOW : HIGH;
 
-    IrSender.begin(TRANSISTOR, LED_BUILTIN); // initialiser l'envoi IR avec le pin du transistor et la LED de feedback
-    IrSender.sendNEC(ADDRESS, COMAND1, 0); // envoyer le signal de commande
-    digitalWrite(VOYANTCOMMANDE, 1); 
-    delay(1000); 
-  }
-
-  if (digitalRead(BOUTON2))
+  if (etat_actuel == LOW && etat_precedent == HIGH) 
   {
-    IrSender.begin(TRANSISTOR, LED_BUILTIN); // initialiser l'envoi IR avec le pin du transistor et la LED de feedback
-    IrSender.sendNEC(ADDRESS, COMAND2, 0); // envoyer le signal de commande
-    digitalWrite(VOYANTCOMMANDE, 1); 
-    delay(1000); 
+    if (bouton_start_appuye) 
+    {
+      envoyer_start();
+    } 
+    else if (bouton_sleep_appuye) 
+    {
+      envoyer_reveille();
+    }
   }
-  digitalWrite(VOYANTCOMMANDE, 0); 
+  etat_precedent = etat_actuel;
 }
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
-}
-
-
-/* digitalWrite(TRANSISTOR, 1) pour le temps de debut;
-delay de x seconde
-digitalWrite(TRANSISTOR, 0);
-delay de x seconde
-ensuite des pulses pour envoyer le signal
-
-une fois le signal envoyé :
- if digitalRead(Bouton1)
- ecrire la loop de commande
- fin */
-
-
-
-
-
