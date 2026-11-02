@@ -1,17 +1,28 @@
-// dans le setup: Etat_actuel = Attente_depart
 #include <LibRobus.h>
 
+#define PIN_VERT	30
+#define PIN_JAUNE	31
+#define PIN_BLEU	32
+#define PIN_ROUGE	33
+#define PIN_ORANGE	34
 
+#define AUCUNE	    -1
+#define PLANCHER	 0
+#define NOIR		 1
+#define JAUNE		 2
+#define ORANGE		 3
+#define BLEU		 4
+#define VERT		 5
+#define ROSE		 6
+#define NB_COULEURS	 7
 
-void Allumer_DEL(int couleur) {
-    digitalWrite(couleur, HIGH);
-    int Etat_DEL = 1;
-    int PIN_DEL = couleur;
-    int Debut_DEL = millis();
-}
+int Etat_DEL, PIN_DEL, Debut_DEL;
+
+void Allumer_DEL(int couleur);
 
 
 void loop(){
+
 	 SOFT_TIMER_Update();
 
     if (Etat_DEL == 1 && (millis() - Debut_DEL >= Duree_DEL)) {
@@ -31,29 +42,29 @@ void loop(){
 		
 			//fonction suivre la ligne -- lire les capteurs de couleurs
 			
-			if (/*couleur = jaune*/ && jaune == 0) {
+			if (/*couleur vue = jaune*/ && jaune == 0) {
 				Etat_actuel = Epreuve_jaune;
-				Allumer_DEL(PIN_jaune);
+				Allumer_DEL(PIN_JAUNE);
 			} 
 			
-			else if (/*couleur = bleu*/ && bleu == 0) {
+			else if (/*couleur vue = bleu*/ && bleu == 0) {
 				Etat_actuel = Epreuve_bleu;
-				Allumer_DEL(PIN_bleu);
+				Allumer_DEL(PIN_BLEU);
 			}
 			
-			else if (/*couleur = orange*/ && orange == 0) {
+			else if (/*couleur vue = orange*/ && orange == 0) {
 				Etat_actuel = Epreuve_orange;
-				Allumer_DEL(PIN_orange);
+				Allumer_DEL(PIN_ORANGE);
 			}
 			
-			else if (/*couleur = mauve*/ && mauve == 0) {
+			else if (/*couleur vue = mauve*/ && mauve == 0) {
 				Etat_actuel = Epreuve_mauve;
-				Allumer_DEL(PIN_mauve);
+				Allumer_DEL(PIN_ROUGE);
 			}
 			
-			else if (/*couleur = vert*/ && vert == 0) {
+			else if (/*couleur vue = vert*/ && vert == 0) {
 				Etat_actuel = Epreuve_vert;
-				Allumer_DEL(PIN_vert);
+				Allumer_DEL(PIN_VERT);
 			}
 			
 			break;
@@ -115,4 +126,12 @@ void loop(){
 			
 			break;
 	}
+}
+
+
+void Allumer_DEL(int couleur) {
+    digitalWrite(couleur, HIGH);
+    Etat_DEL = 1;
+    PIN_DEL = couleur;
+    Debut_DEL = millis();
 }
