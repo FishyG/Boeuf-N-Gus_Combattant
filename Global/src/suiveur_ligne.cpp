@@ -1,3 +1,8 @@
+/*
+Deplacements avec PID : deplacement(mm), tourne_droit(), tourne_gauche(), demi_tour(), avancer(), arret()
+Pas de setup() ni loop() ici : main.cpp appelle ces fonctions.
+Le PID utilise le SOFT_TIMER 0.
+*/
 #include <LibRobus.h>
 #include <Arduino.h>
 
@@ -16,6 +21,9 @@
 
 #define PIN_5KHZ A0
 
+// ---- Vient de color.cpp ----
+void delMiseAJour();   // eteint les DEL apres 10 s
+
 float vitesse_base = 0.35;
 
 int32_t deplacement_total_droit = 0;
@@ -26,7 +34,7 @@ int32_t integrale_gauche = 0;
 int32_t integrale_droite = 0;
 int32_t v_moteur_gauche_pps = 0;
 int32_t v_moteur_droit_pps = 0;
-int32_t compteur = 0;
+int32_t compteur_pid = 0;
 int sens_rotation = 0;
 
 
@@ -53,7 +61,7 @@ void blabla()
   double v_moteur_gauche;
   double v_moteur_droit;
 
-  if (compteur > 4)
+  if (compteur_pid > 4)
   {
     v_moteur_gauche_pps = PID(v_pps_cible, pulse_moteur_gauche, integrale_gauche);
     v_moteur_droit_pps = PID(v_pps_cible, pulse_moteur_droit, integrale_droite);
@@ -62,14 +70,14 @@ void blabla()
   }
   else
   {
-    v_moteur_gauche = 0.2 + compteur * 0.03;
-    v_moteur_droit = 0.2 + compteur * 0.03;
+    v_moteur_gauche = 0.2 + compteur_pid * 0.03;
+    v_moteur_droit = 0.2 + compteur_pid * 0.03;
   }
 
   deplacement_total_gauche += pulse_moteur_gauche;
   deplacement_total_droit += pulse_moteur_droit;
 
-  ++compteur;
+  ++compteur_pid;
 
   MOTOR_SetSpeed(LEFT, v_moteur_gauche);
   MOTOR_SetSpeed(RIGHT, v_moteur_droit);
@@ -88,7 +96,7 @@ void blablaRond()
   double v_moteur_gauche;
   double v_moteur_droit;
 
-  if (compteur > 4)
+  if (compteur_pid > 4)
   {
     v_moteur_gauche_pps = PID(v_pps_cible, pulse_moteur_gauche, integrale_gauche);
     v_moteur_droit_pps = PID(v_pps_cible, pulse_moteur_droit, integrale_droite);
@@ -97,19 +105,19 @@ void blablaRond()
   }
   else
   {
-    v_moteur_gauche = 0.2 + compteur * 0.03;
-    v_moteur_droit = 0.2 + compteur * 0.03;
+    v_moteur_gauche = 0.2 + compteur_pid * 0.03;
+    v_moteur_droit = 0.2 + compteur_pid * 0.03;
   }
 
   deplacement_total_gauche += pulse_moteur_gauche;
   deplacement_total_droit += pulse_moteur_droit;
 
-  ++compteur;
+  ++compteur_pid;
 
   MOTOR_SetSpeed(LEFT, sens_rotation * v_moteur_gauche);
   MOTOR_SetSpeed(RIGHT, -1 * sens_rotation * v_moteur_droit);
 
-  Serial.print(compteur); Serial.print("\t");
+  Serial.print(compteur_pid); Serial.print("\t");
   Serial.print(pulse_moteur_gauche); Serial.print("\t");
   Serial.print(pulse_moteur_droit); Serial.print("\t");
   Serial.print(deplacement_total_gauche); Serial.print("\t");
@@ -139,7 +147,7 @@ void deplacement(int distance)
   deplacement_total_gauche = 0;
   integrale_gauche = 0;
   integrale_droite = 0;
-  compteur = 0;
+  compteur_pid = 0;
 
   SOFT_TIMER_SetCallback(0, blabla);
   SOFT_TIMER_SetDelay(0, PERIODE);
@@ -148,6 +156,7 @@ void deplacement(int distance)
   while (deplacement_total_gauche < deplacement_a_faire || deplacement_total_droit < deplacement_a_faire)
   {
     SOFT_TIMER_Update();
+    delMiseAJour();
   };
 
   SOFT_TIMER_Disable(0);
@@ -161,7 +170,7 @@ void rotation(int angle)
   deplacement_total_gauche = 0;
   integrale_gauche = 0;
   integrale_droite = 0;
-  compteur = 0;
+  compteur_pid = 0;
 
   Serial.print("--- Rotation "); Serial.print(angle);
   Serial.print(" deg | cible = "); Serial.println(deplacement_a_faire);
@@ -172,6 +181,7 @@ void rotation(int angle)
   while (deplacement_total_gauche < deplacement_a_faire || deplacement_total_droit < deplacement_a_faire)
   {
     SOFT_TIMER_Update();
+    delMiseAJour();
   }
   SOFT_TIMER_Disable(0);
 
@@ -195,9 +205,6 @@ void avancer()
   ENCODER_Reset(RIGHT);
   ENCODER_Reset(LEFT);
   deplacement(500);
-  ++increment_historique;
-  historique[increment_historique] = historique[increment_historique - 1] + orientation;
-  adjacence[historique[increment_historique]][historique[increment_historique - 1]] = 0;
 }
 
 void tourne_droit()
@@ -221,36 +228,4 @@ void tourne_gauche(){
   ENCODER_Reset(LEFT);
   sens_rotation = -1;
   rotation(90);
-}
-
-void suivreLigne() {
-  int u1 = analogRead(A1);
-  int u2 = analogRead(A2);
-  int u3 = analogRead(A3);
-
-	if (u2 > 400) {
-		MOTOR_SetSpeed(LEFT, 0.2);
-		MOTOR_SetSpeed(RIGHT, 0.2);
-		apres_canyon = 0;
-	} else if (u1 > 400) {
-		MOTOR_SetSpeed(LEFT, 0.1);
-		MOTOR_SetSpeed(RIGHT, 0.4);
-		apres_canyon = 0;
-	} else if (u3 > 400) {
-		MOTOR_SetSpeed(LEFT, 0.4);
-		MOTOR_SetSpeed(RIGHT, 0.1);
-		apres_canyon = 0;
-	} else {
-		if (cherche_droit && apres_canyon) {
-			MOTOR_SetSpeed(LEFT, 0.4);
-			MOTOR_SetSpeed(RIGHT, 0.0);
-			delay(100);
-			cherche_droit = 0;
-		} else if (!cherche_droit && apres_canyon) {
-			MOTOR_SetSpeed(LEFT, 0.0);
-			MOTOR_SetSpeed(RIGHT, 0.4);
-			delay(200);
-		}
-
-	}
 }
