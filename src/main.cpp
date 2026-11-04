@@ -69,6 +69,10 @@ void setup() {
   // Servomotor and shit (sont disable pour pas qui pete toute)
   SERVO_Disable(0); // C'est le servo qui squeeze
   SERVO_Disable(1); // C'est le servo qui tilt
+  SERVO_SetAngle(0,0); // c valeur par defaut pour pas qui arrache toute
+  // Use le full range, 0 et 180 deg
+  SERVO_SetAngle(1, 20); // c valeur par defaut pour pas qui arrache toute
+  // DO NOT USE O-180!!!! Seulement 0-20, thx zoubi >w<
 
   pinMode(pin_rouge, INPUT);
   pinMode(pin_vert, INPUT);
