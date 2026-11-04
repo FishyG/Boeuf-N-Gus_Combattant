@@ -19,15 +19,10 @@ Date: Aujourd'hui
 
 #define MUR_SANS_JAUNE   0        
 #define MUR_DETECTE      LOW      
-#define PULSES_PAR_M     13367    
-#define ENTRAXE          0.1778   // m, entre les 2 roues
-#define FACTEUR_TOURNE_D 1.07
-#define FACTEUR_TOURNE_G 1.05
-#define GLISSE_VIRAGE    62       
-#define VITESSE_VIRAGE   0.25
-#define MUR_COTE         0.5      
-#define MUR_LONGER       0.7     
-#define MUR_RETOUR       0.5      
+#define MUR_COTE         500      // mm, on s'eloigne de la ligne (apres le virage a droite)
+#define MUR_LONGER       700      // mm, on depasse le mur (apres le 1er virage a gauche)
+#define MUR_RETOUR       500      // mm, on revient sur la ligne (apres le 2e virage a gauche)
+#define CANYON           590      // mm, traversee du canyon
 #define VITESSE_CHERCHE  0.2
 
 
@@ -77,51 +72,19 @@ int bouton2 = 0;
 
 //. les defs de functions, ils sont ici
 bool detection_mur();
-void updatePI();
-void printDebug();
-void moveDistance(float distance_m);
 void suivreLigne();
 void arretCouleur();
 void bip();
-void tourner(float degres);
 void avancerJusquaLigne();
 void contournerMur();
 
-// Les IDs des timers je les mets ici
-enum TimerIDs {
-  TIMER_ID_PID,
-  TIMER_ID_DEBUG,
-};
-
-typedef struct {
-  float kp;
-  float ki;
-  float integral;
-  float speed;
-  int32_t total_pulses;
-  int32_t target_pulses;
-} MotorParams;
-
-// Si vous avez a modifier les valeur de PID, elles vont ici
-MotorParams motor_left = {
-  .kp = 0.0004,
-  .ki = 0.000002,
-
-  .integral = 0,
-  .speed = 0,
-  .total_pulses = 0,
-  .target_pulses = 0
-};
-
-MotorParams motor_right = {
-  .kp = 0.0004,
-  .ki = 0.000002,
-
-  .integral = 0,
-  .speed = 0,
-  .total_pulses = 0,
-  .target_pulses = 0
-};
+// ---- Viennent de suiveur_ligne.cpp (deplacements avec PID) ----
+void deplacement(int distance_mm); // avance de distance_mm mm
+void tourne_droit();              // 90 degres a droite
+void tourne_gauche();             // 90 degres a gauche
+void demi_tour();
+void avancer();                   // avance de 500 mm
+void arret();
 
 void setup() {
   BoardInit();
@@ -139,15 +102,6 @@ void setup() {
   MOTOR_SetSpeed(LEFT, 0);
   MOTOR_SetSpeed(RIGHT, 0);
 
-  SOFT_TIMER_SetCallback(TIMER_ID_PID, updatePI);
-  SOFT_TIMER_SetDelay(TIMER_ID_PID, 100);
-  SOFT_TIMER_SetRepetition(TIMER_ID_PID, -1);
-  SOFT_TIMER_Enable(TIMER_ID_PID);
-
-  SOFT_TIMER_SetCallback(TIMER_ID_DEBUG, printDebug);
-  SOFT_TIMER_SetDelay(TIMER_ID_DEBUG, 500);
-  SOFT_TIMER_SetRepetition(TIMER_ID_DEBUG, -1);
-  //SOFT_TIMER_Enable(TIMER_ID_DEBUG);
   cherche_droit = 1;
   apres_canyon = 0;
 
@@ -345,12 +299,8 @@ void suivreLigne() {
 		if (canyon_actif && u1 > 400 && u3 > 400) {    // canyon seulement apres le carton vert
 			ENCODER_Reset(LEFT);
 			ENCODER_Reset(RIGHT);
-			moveDistance(0.59);
-			for (int i = 0; i < 200; i++)
-			{
-				delay(10);
-				SOFT_TIMER_Update();
-			}
+			deplacement(CANYON);
+			attendre(2000);
 			MOTOR_SetSpeed(LEFT, 0);
 			MOTOR_SetSpeed(RIGHT, 0);
 			apres_canyon = 1;
@@ -377,97 +327,6 @@ void suivreLigne() {
 		}
 
 	}
-}
-
-
-// PI(pas de D) pour les moteurs
-void updatePI() {
-  int32_t left_pulses = ENCODER_ReadReset(LEFT);
-  int32_t right_pulses = ENCODER_ReadReset(RIGHT);
-
-  float left_error = motor_left.target_pulses - left_pulses;
-  float right_error = motor_right.target_pulses - right_pulses;
-
-  motor_left.total_pulses += left_pulses;
-  motor_right.total_pulses += right_pulses;
-
-  motor_left.integral += left_error;
-  motor_right.integral += right_error;
-
-  motor_left.speed += motor_left.kp * left_error + motor_left.ki * motor_left.integral;
-  motor_right.speed += motor_right.kp * right_error + motor_right.ki * motor_right.integral;
-
-  if (motor_left.speed > 1.0)
-    motor_left.speed = 1.0;
-  if (motor_left.speed < -1.0)
-    motor_left.speed = -1.0;
-
-  if (motor_right.speed > 1.0)
-    motor_right.speed = 1.0;
-  if (motor_right.speed < -1.0)
-    motor_right.speed = -1.0;
-
-  MOTOR_SetSpeed(LEFT, motor_left.speed);
-  MOTOR_SetSpeed(RIGHT, motor_right.speed);
-}
-
-void printDebug() {
-  Serial.print("L total: ");
-  Serial.print(motor_left.total_pulses);
-
-  Serial.print(" | L integral: ");
-  Serial.print(motor_left.integral);
-
-  Serial.print(" | L speed: ");
-  Serial.print(motor_left.speed);
-
-  Serial.print(" | R total: ");
-  Serial.print(motor_right.total_pulses);
-
-  Serial.print(" | R integral: ");
-  Serial.print(motor_right.integral);
-
-  Serial.print(" | R speed: ");
-  Serial.println(motor_right.speed);
-}
-
-void moveDistance(float distance_m) {
-  int32_t distance_target = distance_m * 13367;
-
-  motor_left.total_pulses = 0;
-  motor_right.total_pulses = 0;
-
-  motor_left.integral = 0;
-  motor_right.integral = 0;
-
-  while (motor_left.total_pulses < distance_target || motor_right.total_pulses < distance_target) {
-    int32_t remaining = distance_target - (motor_left.total_pulses + motor_right.total_pulses) / 2;
-    if (remaining > 2000) {
-      motor_left.target_pulses = 400;
-      motor_right.target_pulses = 400;
-    }
-    else if (remaining > 1000) {
-      motor_left.target_pulses = 200;
-      motor_right.target_pulses = 200;
-    } else {
-      motor_left.target_pulses = 150;
-      motor_right.target_pulses = 150;
-    }
-
-    SOFT_TIMER_Update();
-    delMiseAJour();          // les DEL s'eteignent a 10 s meme pendant le deplacement
-  }
-
-  motor_left.target_pulses = 0;
-  motor_right.target_pulses = 0;
-
-  for (int i = 0; i < 250; i++)
-  {
-    delay(2);
-    SOFT_TIMER_Update();
-  }
-
-  SOFT_TIMER_Update();
 }
 
 
@@ -502,32 +361,6 @@ bool detection_mur()
 }
 
 
-void tourner(float degres) {
-  float sens = 1;
-  if (degres < 0) {
-    sens = -1;
-    degres = -degres;
-  }
-  int32_t cible = PI * ENTRAXE * degres / 360.0 * PULSES_PAR_M;
-  if (sens > 0)
-    cible = cible * FACTEUR_TOURNE_D;
-  else
-    cible = cible * FACTEUR_TOURNE_G;
-  cible -= GLISSE_VIRAGE;
-
-  ENCODER_Reset(LEFT);
-  ENCODER_Reset(RIGHT);
-  MOTOR_SetSpeed(LEFT, sens * VITESSE_VIRAGE);
-  MOTOR_SetSpeed(RIGHT, -sens * VITESSE_VIRAGE);
-
-  while ((abs(ENCODER_Read(LEFT)) + abs(ENCODER_Read(RIGHT))) / 2 < cible)
-    delMiseAJour();
-
-  MOTOR_SetSpeed(LEFT, 0);
-  MOTOR_SetSpeed(RIGHT, 0);
-  attendre(200);
-}
-
 void avancerJusquaLigne() {
   MOTOR_SetSpeed(LEFT, VITESSE_CHERCHE);
   MOTOR_SetSpeed(RIGHT, VITESSE_CHERCHE);
@@ -542,20 +375,14 @@ void contournerMur() {
   MOTOR_SetSpeed(RIGHT, 0);
   attendre(200);
 
-  tourner(90);            
-  ENCODER_Reset(LEFT);
-  ENCODER_Reset(RIGHT);
-  moveDistance(MUR_COTE);
-  tourner(-90);             
-  ENCODER_Reset(LEFT);
-  ENCODER_Reset(RIGHT);
-  moveDistance(MUR_LONGER);
-  tourner(-90);           
-  ENCODER_Reset(LEFT);
-  ENCODER_Reset(RIGHT);
-  moveDistance(MUR_RETOUR);
+  tourne_droit();
+  deplacement(MUR_COTE);
+  tourne_gauche();
+  deplacement(MUR_LONGER);
+  tourne_gauche();
+  deplacement(MUR_RETOUR);
 
-  tourner(90);             
+  tourne_droit();           // de retour sur la ligne : on se remet dans le sens du parcours
 
   mur_actif = 0;
 }
