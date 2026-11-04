@@ -16,8 +16,24 @@ Date: Aujourd'hui
 #define distance 0.495
 #define distance_1m 0.98
 
+
+#define MUR_SANS_JAUNE   0        
+#define MUR_DETECTE      LOW      
+#define PULSES_PAR_M     13367    
+#define ENTRAXE          0.1778   // m, entre les 2 roues
+#define FACTEUR_TOURNE_D 1.07
+#define FACTEUR_TOURNE_G 1.05
+#define GLISSE_VIRAGE    62       
+#define VITESSE_VIRAGE   0.25
+#define MUR_COTE         0.5      
+#define MUR_LONGER       0.7     
+#define MUR_RETOUR       0.5      
+#define VITESSE_CHERCHE  0.2      
+
 bool cherche_droit;
 bool apres_canyon;
+bool canyon_actif = 0;     
+bool mur_actif = 0;        
 
 // ---- Doivent etre pareils que dans color.cpp ----
 #define AUCUNE        -1
@@ -53,12 +69,16 @@ int Etat_actuel;
 int bouton2 = 0;
 
 //. les defs de functions, ils sont ici
-void detection_mur();
+bool detection_mur();
 void updatePI();
 void printDebug();
 void moveDistance(float distance_m);
 void suivreLigne();
 void arretCouleur();
+void bip();
+void tourner(float degres);
+void avancerJusquaLigne();
+void contournerMur();
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
@@ -126,6 +146,7 @@ void setup() {
 
   delay(10);
 
+  mur_actif = MUR_SANS_JAUNE;
   Etat_actuel = Attente_depart;
   Serial.println("Waiting...");
 }
@@ -166,21 +187,16 @@ void loop() {
 				Etat_actuel = Epreuve_rose;
 			else if (couleur == VERT)
 				Etat_actuel = Epreuve_vert;
+			else if (mur_actif && (digitalRead(pin_vert) == MUR_DETECTE || digitalRead(pin_rouge) == MUR_DETECTE) && detection_mur())
+				contournerMur();
 			else
 				suivreLigne();
 
 			break;
 
-		// Pour le moment les epreuves sont en commentaire : le robot s'arrete 3 s et repart
 		case Epreuve_jaune:
-			arretCouleur();
-			//tournerdroite();
-			//avancer();                 // pour la fonction avancer il faut voir de combien on avance
-			//tournergauche();
-			//avancer();
-			//tournergauche();
-			//avancer();
-			//tournerdroite();
+			bip();
+			mur_actif = 1;
 			Etat_actuel = Suivre_ligne;
 
 			break;
@@ -215,8 +231,9 @@ void loop() {
 			break;
 
 		case Epreuve_vert:
-			arretCouleur();
-			//épreuve verte
+			// Canyon : on continue a suivre la ligne jusqu'aux 3 capteurs sur le noir (voir suivreLigne)
+			bip();
+			canyon_actif = 1;
 			Etat_actuel = Suivre_ligne;
 
 			break;
@@ -231,18 +248,19 @@ void loop() {
 	}
 }
 
-
-// En attendant les epreuves : arret, bip, 3 s, puis on repart
-// Utiliser attendre() et non delay() dans les epreuves pour que les DEL s'eteignent a 10 s
 void arretCouleur() {
+  bip();
+  attendre(ARRET_COULEUR);
+}
+
+// Arret et bip de 0.2 s
+void bip() {
   MOTOR_SetSpeed(LEFT, 0);
   MOTOR_SetSpeed(RIGHT, 0);
 
   AX_BuzzerON();
   attendre(200);
   AX_BuzzerOFF();
-
-  attendre(ARRET_COULEUR);
 }
 
 
@@ -262,7 +280,7 @@ void suivreLigne() {
 		MOTOR_SetSpeed(LEFT, 0.2);
 		MOTOR_SetSpeed(RIGHT, 0.2);	/* code */
 		apres_canyon = 0;
-		if (u1 > 400 && u3 > 400) {
+		if (canyon_actif && u1 > 400 && u3 > 400) {    // canyon seulement apres le carton vert
 			ENCODER_Reset(LEFT);
 			ENCODER_Reset(RIGHT);
 			moveDistance(0.59);
@@ -274,6 +292,7 @@ void suivreLigne() {
 			MOTOR_SetSpeed(LEFT, 0);
 			MOTOR_SetSpeed(RIGHT, 0);
 			apres_canyon = 1;
+			canyon_actif = 0;
 		}
 	} else if (u1 > 400) {
 		MOTOR_SetSpeed(LEFT, 0.1);
@@ -374,6 +393,7 @@ void moveDistance(float distance_m) {
     }
 
     SOFT_TIMER_Update();
+    delMiseAJour();          // les DEL s'eteignent a 10 s meme pendant le deplacement
   }
 
   motor_left.target_pulses = 0;
@@ -386,4 +406,94 @@ void moveDistance(float distance_m) {
   }
 
   SOFT_TIMER_Update();
+}
+
+
+bool detection_mur()
+{
+  
+  int obstacle = 0;
+
+  for (int i = 0; i < 7; i++)
+  {
+    
+    int vert = digitalRead(pin_vert);
+    int rouge = digitalRead(pin_rouge);
+    
+    if (vert == MUR_DETECTE && rouge == MUR_DETECTE)
+    {
+      obstacle ++;
+    }
+    if (vert == MUR_DETECTE || rouge == MUR_DETECTE)
+    {
+      obstacle ++;
+    }
+    
+    if (obstacle >= 4)
+    {
+      return true;
+    }
+    attendre(7);
+  }
+  // Pas de mur
+  return false;
+}
+
+
+void tourner(float degres) {
+  float sens = 1;
+  if (degres < 0) {
+    sens = -1;
+    degres = -degres;
+  }
+  int32_t cible = PI * ENTRAXE * degres / 360.0 * PULSES_PAR_M;
+  if (sens > 0)
+    cible = cible * FACTEUR_TOURNE_D;
+  else
+    cible = cible * FACTEUR_TOURNE_G;
+  cible -= GLISSE_VIRAGE;
+
+  ENCODER_Reset(LEFT);
+  ENCODER_Reset(RIGHT);
+  MOTOR_SetSpeed(LEFT, sens * VITESSE_VIRAGE);
+  MOTOR_SetSpeed(RIGHT, -sens * VITESSE_VIRAGE);
+
+  while ((abs(ENCODER_Read(LEFT)) + abs(ENCODER_Read(RIGHT))) / 2 < cible)
+    delMiseAJour();
+
+  MOTOR_SetSpeed(LEFT, 0);
+  MOTOR_SetSpeed(RIGHT, 0);
+  attendre(200);
+}
+
+void avancerJusquaLigne() {
+  MOTOR_SetSpeed(LEFT, VITESSE_CHERCHE);
+  MOTOR_SetSpeed(RIGHT, VITESSE_CHERCHE);
+  while (analogRead(A1) <= 400 && analogRead(A2) <= 400 && analogRead(A3) <= 400)
+    delMiseAJour();
+  MOTOR_SetSpeed(LEFT, 0);
+  MOTOR_SetSpeed(RIGHT, 0);
+}
+
+void contournerMur() {
+  MOTOR_SetSpeed(LEFT, 0);
+  MOTOR_SetSpeed(RIGHT, 0);
+  attendre(200);
+
+  tourner(90);            
+  ENCODER_Reset(LEFT);
+  ENCODER_Reset(RIGHT);
+  moveDistance(MUR_COTE);
+  tourner(-90);             
+  ENCODER_Reset(LEFT);
+  ENCODER_Reset(RIGHT);
+  moveDistance(MUR_LONGER);
+  tourner(-90);           
+  ENCODER_Reset(LEFT);
+  ENCODER_Reset(RIGHT);
+  moveDistance(MUR_RETOUR);
+
+  tourner(90);             
+
+  mur_actif = 0;
 }
