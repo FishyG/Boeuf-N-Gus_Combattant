@@ -21,11 +21,14 @@ Inclure les librairies de functions que vous voulez utiliser
 #define distance 0.495
 #define distance_1m 1
 
+#define PULSES_PER_M 13367
+
 void updatePI();
 void moveDistance(float distance_m);
 void turnLeft90();
 void turnRight90();
 int detection_mur();
+void slapQuille();
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
@@ -96,12 +99,21 @@ void setup() {
 
   delay(10);
 
-  Serial.println("Waiting...");
-  while (!ROBUS_IsBumper(REAR)) {
-    delay(10);
-  }
-  Serial.println("Mode chill!");
-  delay(1000);
+  // Set le servo droit
+  SERVO_Enable(1);
+  SERVO_SetAngle(1, 20);
+  SERVO_Enable(0);
+  SERVO_SetAngle(0,0);
+
+  /*while (1) {
+    Serial.println("Waiting...");
+    while (!ROBUS_IsBumper(REAR)) {
+      delay(10);
+    }
+    Serial.println("Slapping");
+    delay(1000);
+    slapQuille();
+  }*/
   // Met le servo tilt more or less droit
   SERVO_Enable(1);
   SERVO_SetAngle(1, 20);
@@ -137,8 +149,8 @@ void setup() {
 }
 
 void loop() {
-delay(10);
-SOFT_TIMER_Update();
+  delay(10);
+  SOFT_TIMER_Update();
 }
 
 // Te donne 0 si fuckall 1 si le rouge est a on, 2 si verte, 3 si les deux
@@ -154,6 +166,19 @@ int detection_mur(){
   return total;
 }
 
+void slapQuille() {
+  int32_t left_pulses = 0;
+  ENCODER_Reset(LEFT);
+  MOTOR_SetSpeed(LEFT, 0.3); 
+  while (left_pulses < 10000) {
+    left_pulses = ENCODER_Read(LEFT);
+  }
+  MOTOR_SetSpeed(LEFT, 0.2);
+  while (left_pulses < 15670) {
+    left_pulses = ENCODER_Read(LEFT);
+  }
+  MOTOR_SetSpeed(LEFT, 0); 
+}
 
 // PI(pas de D) pour les moteurs
 void updatePI() {
