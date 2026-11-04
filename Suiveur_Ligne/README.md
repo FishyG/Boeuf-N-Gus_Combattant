@@ -1,1 +1,0 @@
-Yo, on est cool
