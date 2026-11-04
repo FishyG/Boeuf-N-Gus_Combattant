@@ -1,49 +1,31 @@
 /*
 Projet: main.cpp robo swag
-Equipe: P23 - Bozo Squad
-Auteurs: Jessy, RAJOUTER VOS NOMS ICI
-Description: Code epreuve du parcour
-Date: Aujourd'hui
+Equipe: P23
+Auteurs: Jessy, RAJOUTER VOS CNOMS ICI
+Description: Code epreuve du combattant
+Date: Aujourd'hui lmao
 */
 
 /* ****************************************************************************
 Inclure les librairies de functions que vous voulez utiliser
 **************************************************************************** */
 
-#include <LibRobus.h> // Essentielle pour utiliser RobUS
+#include <LibRobus.h> // Pour utiliser RobUS
 
 #define PULSES_LEFT 1700
 #define PULSES_RIGHT 1700
 
-#define PIN_5KHZ      A0       
-// ---- Seuils ---- base sur 3,2V min : 3,2 / 5 * 1024 = 655, max : 3,49 / 5 * 1024 = 714
-#define SEUIL_SIFFLET 550
-#define MAX_SIFFLET   714
 #define pin_rouge 49
 #define pin_vert 48
 
 #define distance 0.495
 #define distance_1m 1
 
-// put function declarations here:
-char Va_Nord(char orientation);
-char Va_Ouest(char orientation);
-char Va_Sud(char orientation);
-char Va_Est(char orientation);
-void fonction_futur_pos();
-int deja_alle();
-void tableau_post_tape();
-void tableau_post_mur();
-void tableau_post_historique();
-void ajouter_position_actuelle();
-void detection_mur();
-void enlever_derniere();
 void updatePI();
-void printDebug();
 void moveDistance(float distance_m);
 void turnLeft90();
 void turnRight90();
-bool sifflet5kHz();
+int detection_mur();
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
@@ -60,7 +42,7 @@ typedef struct {
   int32_t target_pulses;
 } MotorParams;
 
-// Si vous avez a modifier les valeur de PID, elles vont ici
+// Si vous avez a modifier les valeur de PI(No D), elles vont ici
 MotorParams motor_left = {
   .kp = 0.0004,
   .ki = 0.000006,
@@ -84,9 +66,14 @@ MotorParams motor_right = {
 void setup() {
   BoardInit();
 
+  // Servomotor and shit (sont disable pour pas qui pete toute)
+  SERVO_Disable(0); // C'est le servo qui squeeze
+  SERVO_Disable(1); // C'est le servo qui tilt
+
   pinMode(pin_rouge, INPUT);
   pinMode(pin_vert, INPUT);
 
+  // Motor(s) and shit
   ENCODER_Reset(LEFT);
   ENCODER_Reset(RIGHT);
 
@@ -97,7 +84,7 @@ void setup() {
   SOFT_TIMER_SetDelay(TIMER_ID_PID, 100);
   SOFT_TIMER_SetRepetition(TIMER_ID_PID, -1);
   SOFT_TIMER_Enable(TIMER_ID_PID);
-
+  
   // SOFT_TIMER_SetCallback(TIMER_ID_DEBUG, printDebug);
   // SOFT_TIMER_SetDelay(TIMER_ID_DEBUG, 500);
   // SOFT_TIMER_SetRepetition(TIMER_ID_DEBUG, -1);
@@ -106,10 +93,42 @@ void setup() {
   delay(10);
 
   Serial.println("Waiting...");
-  while ((!ROBUS_IsBumper(REAR)) && !sifflet5kHz()) {
-    delay(20);
-    SOFT_TIMER_Update();
+  while (!ROBUS_IsBumper(REAR)) {
+    delay(10);
   }
+  Serial.println("Mode chill!");
+  delay(1000);
+  // Met le servo tilt more or less droit
+  SERVO_Enable(1);
+  SERVO_SetAngle(1, 20);
+  SERVO_Enable(0);
+  SERVO_SetAngle(0,0);
+
+  Serial.println("Waiting...");
+  while (!ROBUS_IsBumper(REAR)) {
+    delay(10);
+  }
+  Serial.println("Pognage!");
+  delay(1000);
+  SERVO_SetAngle(0,178);
+  delay(750);
+  SERVO_SetAngle(1,0);
+
+  Serial.println("Waiting...");
+  while (!ROBUS_IsBumper(REAR)) {
+    delay(10);
+  }
+  Serial.println("Dropage!");
+  delay(1000);
+  SERVO_SetAngle(1, 23);
+  delay(500);
+  SERVO_SetAngle(0,0);
+  Serial.println("Done!");
+  while (1)
+  {
+    delay(10);
+  }
+  SOFT_TIMER_Update();
   Serial.println("Going!");
 }
 
@@ -118,28 +137,17 @@ delay(10);
 SOFT_TIMER_Update();
 }
 
+// Te donne 0 si fuckall 1 si le rouge est a on, 2 si verte, 3 si les deux
+int detection_mur(){
 
-void detection_mur(){
-	int led_rouge;
-	int led_verte;
-  
-  for (int i = 0; i < 300; i++)
-  {
-    delay(2);
-    SOFT_TIMER_Update();
+  int total = 0;
+  if (digitalRead(pin_rouge) == LOW){
+		total = total + 1;
+	}
+  if (digitalRead(pin_vert) == LOW){
+		total = total + 2;
   }
-
-  led_rouge = digitalRead(pin_rouge);
-  led_verte = digitalRead(pin_vert);
-  Serial.print("Mur: ");
-	if (led_rouge == LOW && led_verte == LOW){
-		mur = 1;
-    Serial.println("yes");
-	} else {
-    mur = 0;
-    Serial.println("no");
-  }
-  
+  return total;
 }
 
 
