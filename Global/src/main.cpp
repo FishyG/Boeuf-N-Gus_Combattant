@@ -28,7 +28,13 @@ Date: Aujourd'hui
 #define MUR_COTE         0.5      
 #define MUR_LONGER       0.7     
 #define MUR_RETOUR       0.5      
-#define VITESSE_CHERCHE  0.2      
+#define VITESSE_CHERCHE  0.2
+
+
+// CONSTANTES
+const uint8_t ADRESSE_ATTENDUE = 0x17;
+const uint8_t CMD_START = 0x01;
+const uint8_t CMD_SLEEP = 0x02;
 
 bool cherche_droit;
 bool apres_canyon;
@@ -64,6 +70,7 @@ void attendre(unsigned long ms); // comme delay(), mais les DEL s'eteignent quan
 #define Epreuve_rose     5
 #define Epreuve_vert     6
 #define fin              7
+#define Attente_bleu     8    // arrete sur le bleu, attend la telecommande (CMD_SLEEP)
 
 int Etat_actuel;
 int bouton2 = 0;
@@ -152,6 +159,68 @@ void setup() {
 }
 
 
+void wait(uint8_t commande_attendue) {
+  uint32_t message = REMOTE_read();
+
+  if (message == 0 || message == 0xFFFFFFFF) {
+    return;
+  }
+
+  Serial.print(message);
+
+  uint8_t adresse = (message >> 24) & 0xFF;
+  uint8_t adresseInv = (message >> 16) & 0xFF;
+  uint8_t commande = (message >> 8) & 0xFF;
+  uint8_t commandeInv = message & 0xFF;
+
+
+  // integrite message
+  if (adresse == (uint8_t)~adresseInv && commande == (uint8_t)~commandeInv) 
+  {
+    // Verif adresse
+    if (adresse == ADRESSE_ATTENDUE) {
+      // On met les choix de commandes ici
+      Serial.print(" -> Commande: ");
+      Serial.print(commande);
+      Serial.println(" reçue");
+      // 3 buzz pour le start
+      // TODO: ajouter un switch pour les 2 commandes que le robot peut recevoir
+      if(commande == commande_attendue){
+        switch (commande)
+        {
+        case CMD_START:
+        for(int i = 0; i < 3; i++) {
+        AX_BuzzerON(1000, 150);
+        delay(300);
+      }
+        break;
+        case CMD_SLEEP:
+          for(int i = 0; i < 2; i++){
+        AX_BuzzerON(1000, 150);
+        delay(300);
+      }
+          break;
+        default:
+          break;
+        }
+        Etat_actuel = Suivre_ligne;
+      }
+      
+      
+    }
+    else
+    {
+      Serial.println(" -> mauvaise adresse");
+    }
+  }
+  else
+  {
+    Serial.println(" -> message non-integre");
+  }
+}
+
+
+
 void loop() {
 	int couleur;
 
@@ -160,13 +229,8 @@ void loop() {
 	switch (Etat_actuel) {
 
 		case Attente_depart:
-
 			//fonction attente IR -- Etat_actuel = Suivre_ligne
-			if (ROBUS_IsBumper(REAR)) {      // TEMPORAIRE : bumper arriere en attendant l'IR
-				Serial.println("Going!");
-				Etat_actuel = Suivre_ligne;
-			}
-
+			wait(CMD_START);
 			break;
 
 		case Suivre_ligne:
@@ -202,14 +266,12 @@ void loop() {
 			break;
 
 		case Epreuve_bleu:
-			arretCouleur();
-			//if (bouton2 == 1)
-			//{
-			//	bip3();
-			//	avancer();
-			//}
-			Etat_actuel = Suivre_ligne;
+			bip();
+			Etat_actuel = Attente_bleu;
+			break;
 
+		case Attente_bleu:
+			wait(CMD_SLEEP);
 			break;
 
 		case Epreuve_orange:
