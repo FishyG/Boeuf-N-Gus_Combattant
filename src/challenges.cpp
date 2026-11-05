@@ -1,4 +1,5 @@
 #include "challenges.h"
+#include "movements.h"
 
 void slapQuille() {
     int32_t left_pulses = 0;
@@ -15,8 +16,10 @@ void slapQuille() {
 }
 
 void Goblet() {
-    int Pulse_tourne_LEFT = 0;
-    int Pulse_tourne_RIGHT = 0;
+    int32_t rotate_pulses_left = 0;
+    int32_t rotate_pulses_right = 0;
+    int32_t reverse_pulses_left = 0;
+    int32_t reverse_pulses_right = 0;
     int Pulse_recule_LEFT = 0;
     int Pulse_recule_RIGHT = 0;
     int Pulse_retourne_LEFT = 0;
@@ -32,11 +35,11 @@ void Goblet() {
     MOTOR_SetSpeed(RIGHT, 0.1);
 
     while (distance < 300) {
-        Pulse_tourne_LEFT = ENCODER_Read(LEFT);
-        Pulse_tourne_RIGHT = ENCODER_Read(RIGHT);
-        distance = analogRead(A7);
         delay(20);
+        distance = analogRead(A7);
     }
+    Serial.println("FOUND IT!");
+
     Serial.print("Distance: ");
     Serial.println(distance);
 
@@ -50,80 +53,80 @@ void Goblet() {
     MOTOR_SetSpeed(LEFT, 0.05);
     MOTOR_SetSpeed(RIGHT, -0.05);
     while (distance < 300) {
-        Pulse_tourne_LEFT = ENCODER_Read(LEFT);
-        Pulse_tourne_RIGHT = ENCODER_Read(RIGHT);
-        distance = analogRead(A7);
         delay(20);
-    }
-    Serial.print("Distance: ");
-    Serial.println(distance);
-
-    Serial.println("Reculage pour setupage!");
-    distance = 0;
-    ENCODER_Reset(LEFT);
-    ENCODER_Reset(RIGHT);
-    MOTOR_SetSpeed(LEFT, -0.1);
-    MOTOR_SetSpeed(RIGHT, -0.1);
-
-    while (distance < 600) {
-        Pulse_recule_LEFT = ENCODER_Read(LEFT);
-        Pulse_recule_RIGHT = ENCODER_Read(RIGHT);
         distance = analogRead(A7);
     }
+    Serial.println("FOUND IT!");
+
     Serial.print("Distance: ");
     Serial.println(distance);
 
-    while (distance > 540) {
-        Pulse_recule_LEFT = ENCODER_Read(LEFT);
-        Pulse_recule_RIGHT = ENCODER_Read(RIGHT);
-        distance = analogRead(A7);
-    }
-    Serial.print("Distance: ");
-    Serial.println(distance);
-
-    /*recule_difference*/
-    Serial.println("Reculage diff!");
-    MOTOR_SetSpeed(LEFT, -0.1);
-    MOTOR_SetSpeed(RIGHT, -0.1);
-    delay(250);
+    // Stop le tournage du robot
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
+    delay(250);
+    // Get le nombre de pulses depuis le start (The missile knows where it is at all times. It knows this because it knows where it isn't.)
+    rotate_pulses_left = ENCODER_Read(LEFT);
+    rotate_pulses_right = ENCODER_Read(RIGHT);
+    // Les pulses d'en haut c le nombre qui va falloir faire dans l'autre sens. :O
+    Serial.print("Left pulses: ");
+    Serial.println(rotate_pulses_left);
+    Serial.print("Right pulses: ");
+    Serial.println(rotate_pulses_right);
 
-    /*fermer_Pince*/
-    Serial.println("Calling pognage!");
-    delay(1000);
+    Serial.println("Rapprochage du verre!");
+    ENCODER_Reset(LEFT);
+    ENCODER_Reset(RIGHT);
+    MOTOR_SetSpeed(LEFT, -0.1);
+    MOTOR_SetSpeed(RIGHT, -0.1);
+
+    distance = 0;
+    // On se rapproche du verre, pis quand tu pognes le 600, c que t'es proche en tabarnak (8-10 cm)
+    while (distance < 600) {
+        delay(10);
+        distance = analogRead(A7);
+    }
+    Serial.println("On a pogner le peak!"); 
+    Serial.print("Distance: ");
+    Serial.println(distance);
+
+    // On se COLLE sur le verre, pis quand tu pognes en bas de 400, c que t'es collee sur le verre (<5 cm)
+    while (distance > 400) {
+        distance = analogRead(A7);
+    }
+    Serial.println("Coller dessus!");
+
+    Serial.print("Distance: ");
+    Serial.println(distance);
+
+    // Avec le reculage bonus, t pretty fucking sure que tu lui a foncer dedans
+    Serial.println("Reculage bonus!");
+    delay(250);
+
+    // Stop le reculage
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+    delay(250);
+    // Get le nombre de pulses depuis le start du avancage (The missile knows where it is at all times. It knows this because it knows where it isn't.)
+    reverse_pulses_left = ENCODER_Read(LEFT);
+    reverse_pulses_right = ENCODER_Read(RIGHT);
+    Serial.print("Left pulses: ");
+    Serial.println(reverse_pulses_left);
+    Serial.print("Right pulses: ");
+    Serial.println(reverse_pulses_right);
+    ENCODER_Reset(LEFT);
+    ENCODER_Reset(RIGHT);
+
+    /* Yoink le verre*/
     pinceYoink();
+    
+    /* Retournage au centre */
+    Serial.println("Retournage au centre!");
+    movePulses(reverse_pulses_left * -1, reverse_pulses_right * -1);
+    delay(100);
 
-    /*avance_difference*/
-    Serial.println("Avancage diff!");
-    MOTOR_SetSpeed(LEFT, 0.1);
-    MOTOR_SetSpeed(RIGHT, 0.1);
-    delay(500);
-    MOTOR_SetSpeed(LEFT, 0.2);
-    MOTOR_SetSpeed(RIGHT, 0.2);
-    delay(750);
-
-    Serial.println("Retoutnage!");
-    ENCODER_Reset(LEFT);
-    ENCODER_Reset(RIGHT);
-    MOTOR_SetSpeed(LEFT, 0.1);
-    MOTOR_SetSpeed(RIGHT, 0.1);
-
-    Serial.println("Idk dawg!");
-    while (Pulse_avance_LEFT < Pulse_recule_LEFT && Pulse_avance_RIGHT < Pulse_recule_RIGHT) {
-        Pulse_avance_LEFT = ENCODER_Read(LEFT);
-        Pulse_avance_RIGHT = ENCODER_Read(RIGHT);
-    }
-
-    ENCODER_Reset(LEFT);
-    ENCODER_Reset(RIGHT);
-    MOTOR_SetSpeed(LEFT, -0.2);
-    MOTOR_SetSpeed(RIGHT, 0.2);
-
-    while (Pulse_retourne_LEFT < Pulse_tourne_LEFT && Pulse_retourne_RIGHT < Pulse_tourne_RIGHT) {
-        Pulse_retourne_LEFT = ENCODER_Read(LEFT);
-        Pulse_retourne_RIGHT = ENCODER_Read(RIGHT);
-    }
+    //Serial.println("Retournage sur lui-meme!");
+    movePulses(rotate_pulses_left * -1, rotate_pulses_right * -1);
 
     Serial.println("Stopage!");
     MOTOR_SetSpeed(LEFT, 0);

@@ -1,5 +1,6 @@
 #include "pince.h"
 
+// DO NOT USE O-180!!!! Seulement 0-20, thx zoubi >w<
 void pinceYoink() {
   Serial.println("Pognage!");
   SERVO_Enable(0);
