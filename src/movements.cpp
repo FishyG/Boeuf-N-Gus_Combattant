@@ -106,7 +106,7 @@ void movePulses(int32_t left_target, int32_t right_target) {
 }
 
 void movePulsesQuick(int32_t left_target, int32_t right_target) {
-    const int32_t TOL = 10;            // tolérance en pulses
+    const int32_t TOL = 15;            // tolérance en pulses
     const uint32_t TIMEOUT_MS = 8000;  // sécurité si ça converge pas
 
     ENCODER_Reset(LEFT);

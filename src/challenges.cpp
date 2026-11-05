@@ -4,9 +4,50 @@
 #include "color.h"
 #include "pince.h"
 
+#define PIN_ROSE    42
+#define PIN_BLEU    40
+#define PIN_VERT    41
+#define PIN_JAUNE   38
+#define PIN_ORANGE  39
+
 const uint8_t ADRESSE_ATTENDUE = 0x17;
 const uint8_t CMD_START = 0x01;
 const uint8_t CMD_SLEEP = 0x02;
+
+
+void allumerLED(int couleur)
+{
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+    switch(couleur)
+    {
+        case CARTE_ROUGE:
+            digitalWrite(PIN_ROSE, LOW);
+            delay(1000);
+            digitalWrite(PIN_ROSE, HIGH);
+            break;
+        case CARTE_BLEU:
+            digitalWrite(PIN_BLEU, LOW);
+            delay(1000);
+            digitalWrite(PIN_BLEU, HIGH);
+            break;
+        case CARTE_VERT:
+            digitalWrite(PIN_VERT, LOW);
+            delay(10000);
+            digitalWrite(PIN_VERT, HIGH);
+            break;
+        case CARTE_JAUNE:
+            digitalWrite(PIN_JAUNE, LOW);
+            delay(10000);
+            digitalWrite(PIN_JAUNE, HIGH);
+            break;
+        case CARTE_ORANGE:
+            digitalWrite(PIN_ORANGE, LOW);
+            delay(10000);
+            digitalWrite(PIN_ORANGE, HIGH);
+            break;
+    }
+}
 
 // Lit la telecommande une fois. Retourne la commande valide, ou -1 si rien / invalide.
 int lireCommandeIR() {
@@ -160,7 +201,7 @@ void passeCoteMur() {
     delay(250);
     turnRight90();
     delay(250);
-    movePulsesQuick(10000,10000);
+    movePulsesQuick(10500,10500);
     delay(250);
     turnRight90();
     delay(250);
@@ -188,9 +229,9 @@ void faireDodoWakeUpManette(){
 
         if (cmd == CMD_SLEEP) {
             Serial.println("Awake le bot");
-            for (int i = 0; i < 6; i++) {
-                AX_BuzzerON(1000, 75);
-                delay(150);
+            for (int i = 0; i < 2; i++) {
+                AX_BuzzerON(1000, 150);
+                delay(300);
             }
             return;
         }
@@ -217,9 +258,11 @@ static bool pivoterJusquaLigne(bool gauche, unsigned long ms) {
 }
 
 void traverserCanyon() {
+    movePulses(0,50);
+
     ENCODER_Reset(LEFT);
     ENCODER_Reset(RIGHT);
-    moveDistance(0.85);
+    moveDistance(0.95);
 
     for (int i = 0; i < 200; i++) {
         delay(10);
@@ -263,6 +306,8 @@ bool challengeRunner(int couleur) {
     if (epreuvesFaites & (1 << couleur)) return false;  // deja faite, on ignore
 
     epreuvesFaites |= (1 << couleur);  // marque AVANT de lancer
+    
+    allumerLED(couleur);
 
     switch (couleur) {
         case CARTE_ROUGE:
