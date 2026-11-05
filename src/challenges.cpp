@@ -1,5 +1,7 @@
 #include "challenges.h"
 #include "movements.h"
+#include "color.h"
+#include "pince.h"
 
 void slapQuille() {
     movePulsesQuick(-15600, 0);
@@ -10,12 +12,6 @@ void yoinkGoblet() {
     int32_t rotate_pulses_right = 0;
     int32_t reverse_pulses_left = 0;
     int32_t reverse_pulses_right = 0;
-    int Pulse_recule_LEFT = 0;
-    int Pulse_recule_RIGHT = 0;
-    int Pulse_retourne_LEFT = 0;
-    int Pulse_retourne_RIGHT = 0;
-    int Pulse_avance_LEFT = 0;
-    int Pulse_avance_RIGHT = 0;
     int distance = 0;
 
     Serial.println("Cherchage!");
@@ -123,6 +119,7 @@ void yoinkGoblet() {
     MOTOR_SetSpeed(RIGHT, 0);
 }
 
+// Va probablement falloir que vous modifier le nombre de pulses, jvais me coucher, nicker vos races 
 void passeCoteMur() {
     turnLeft90();
     delay(250);
@@ -138,4 +135,101 @@ void passeCoteMur() {
     delay(250);
     turnLeft90();
     delay(250);
+}
+
+void faireDodoWakeUpManette(){
+    //PUT LE CODE HERE!
+}
+
+static bool pivoterJusquaLigne(bool gauche, unsigned long ms) {
+    MOTOR_SetSpeed(LEFT,  gauche ? 0.0 : 0.4);
+    MOTOR_SetSpeed(RIGHT, gauche ? 0.4 : 0.0);
+
+    unsigned long start = millis();
+    while (millis() - start < ms) {
+        if (analogRead(A2) > 400) {
+            MOTOR_SetSpeed(LEFT, 0);
+            MOTOR_SetSpeed(RIGHT, 0);
+            return true;
+        }
+    }
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+    return false;
+}
+
+void traverserCanyon() {
+    ENCODER_Reset(LEFT);
+    ENCODER_Reset(RIGHT);
+    moveDistance(0.72);
+
+    for (int i = 0; i < 200; i++) {
+        delay(10);
+        SOFT_TIMER_Update();
+    }
+
+    // Plus de SOFT_TIMER_Update() a partir d'ici : sinon le PI ecrase les MOTOR_SetSpeed
+    motor_left.speed = 0;
+    motor_right.speed = 0;
+    motor_left.target_pulses = 0;
+    motor_right.target_pulses = 0;
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+
+    // Balayage qui s'elargit : droite 100 ms, gauche 200 ms, droite 300 ms, ...
+    bool trouve = (analogRead(A2) > 400);
+    bool gauche = false;
+    unsigned long duree = 100;
+
+    while (!trouve && duree <= 1500) {
+        trouve = pivoterJusquaLigne(gauche, duree);
+        gauche = !gauche;
+        duree += 100;
+        delay(50);
+    }
+
+    if (!trouve) {
+        Serial.println("Canyon: ligne pas retrouvee!");
+    }
+}
+
+static uint8_t epreuvesFaites = 0;  // bit n = carte n deja faite
+
+#define TOUTES_FAITES ((1 << CARTE_ROUGE) | (1 << CARTE_VERT) | (1 << CARTE_BLEU) | (1 << CARTE_JAUNE) | (1 << CARTE_ORANGE))
+
+bool toutEstFait() {
+    return (epreuvesFaites & TOUTES_FAITES) == TOUTES_FAITES;
+}
+
+bool challengeRunner(int couleur) {
+    if (couleur < CARTE_ROUGE || couleur > CARTE_ORANGE) return false;
+    if (epreuvesFaites & (1 << couleur)) return false;  // deja faite, on ignore
+
+    epreuvesFaites |= (1 << couleur);  // marque AVANT de lancer
+
+    switch (couleur) {
+        case CARTE_ROUGE:
+            slapQuille();
+            break;
+        case CARTE_VERT:
+            traverserCanyon();
+            break;
+        case CARTE_BLEU:
+            faireDodoWakeUpManette();
+            break;
+        case CARTE_JAUNE:
+            passeCoteMur();
+            break;
+        case CARTE_ORANGE:
+            yoinkGoblet();
+            break;
+    }
+
+    if (toutEstFait()) {
+        pinceDrop();
+        while (1) {
+            delay(10);
+        }
+    }
+    return true;
 }

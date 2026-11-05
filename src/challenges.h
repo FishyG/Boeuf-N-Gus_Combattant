@@ -6,3 +6,5 @@
 void slapQuille();
 void yoinkGoblet();
 void passeCoteMur();
+void faireDodoWakeUpManette();
+bool challengeRunner(int couleur);

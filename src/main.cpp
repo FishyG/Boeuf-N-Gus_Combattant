@@ -15,67 +15,61 @@ Inclure les librairies de functions que vous voulez utiliser
 #include "challenges.h"
 #include "pince.h"
 #include "movements.h"
+#include "color.h"
 
 #define pin_rouge 49
 #define pin_vert 48
 
+bool cherche_droit;
+bool apres_canyon;
+
 void setup() {
-    // Balls XD
-    BoardInit();
-    // Start mon pti timer and shit
-    movementsInit();
-    // Set le servo droit
-    pinceIdle();
+    BoardInit(); // Balls XD
+    couleurInit(); // DEVINE IL FAIT KOI SMART ASS
+    movementsInit(); // Start mon pti timer and shit
+    couleurInit();
+    pinceIdle(); // Set le servo droit
 
     pinMode(pin_rouge, INPUT);
     pinMode(pin_vert, INPUT);
 
-    delay(10);
+    delay(500);
 
-    while (1) {
+    while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
+        delay(10);
+    }
+
+    while (0) {
         Serial.println("Waiting...");
         while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
             delay(10);
         }
+
         while (1) {
-            Serial.println("Fuck le mur");
-            Serial.println(ENCODER_Read(RIGHT));
+            Serial.println(couleurScan());
             delay(100);
-            passeCoteMur();
-            delay(1000);
-
-            Serial.println("Waiting...");
-            while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
-                delay(10);
-            }
         }
-
-        yoinkGoblet();
-
-        Serial.println("Calling dropage!");
-        delay(1000);
-        pinceDrop();
-
-        Serial.println("Calling ressettage!");
-        delay(2000);
-        pinceIdle();
-        delay(1000);
     }
 }
 
 void loop() {
-    delay(10);
-    SOFT_TIMER_Update();
-}
+    int u1 = analogRead(A1);
+    int u2 = analogRead(A2);
+    int u3 = analogRead(A3);
 
-// Te donne 0 si fuckall 1 si le rouge est a on, 2 si verte, 3 si les deux
-int detection_mur() {
-    int total = 0;
-    if (digitalRead(pin_rouge) == LOW) {
-        total = total + 1;
+    int couleur = couleurScan();
+    if (couleur) {
+        challengeRunner(couleur);
     }
-    if (digitalRead(pin_vert) == LOW) {
-        total = total + 2;
+
+    if (u2 > 400) {
+        MOTOR_SetSpeed(LEFT, 0.2);
+        MOTOR_SetSpeed(RIGHT, 0.2);
+    } else if (u1 > 400) {
+        MOTOR_SetSpeed(LEFT, 0.1);
+        MOTOR_SetSpeed(RIGHT, 0.4);
+    } else if (u3 > 400) {
+        MOTOR_SetSpeed(LEFT, 0.4);
+        MOTOR_SetSpeed(RIGHT, 0.1);
     }
-    return total;
 }
