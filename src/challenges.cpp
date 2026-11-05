@@ -23,27 +23,27 @@ void allumerLED(int couleur)
     {
         case CARTE_ROUGE:
             digitalWrite(PIN_ROSE, LOW);
-            delay(1000);
+            delay(7000);
             digitalWrite(PIN_ROSE, HIGH);
             break;
         case CARTE_BLEU:
             digitalWrite(PIN_BLEU, LOW);
-            delay(1000);
+            delay(7000);
             digitalWrite(PIN_BLEU, HIGH);
             break;
         case CARTE_VERT:
             digitalWrite(PIN_VERT, LOW);
-            delay(10000);
+            delay(7000);
             digitalWrite(PIN_VERT, HIGH);
             break;
         case CARTE_JAUNE:
             digitalWrite(PIN_JAUNE, LOW);
-            delay(10000);
+            delay(7000);
             digitalWrite(PIN_JAUNE, HIGH);
             break;
         case CARTE_ORANGE:
             digitalWrite(PIN_ORANGE, LOW);
-            delay(10000);
+            delay(7000);
             digitalWrite(PIN_ORANGE, HIGH);
             break;
     }
