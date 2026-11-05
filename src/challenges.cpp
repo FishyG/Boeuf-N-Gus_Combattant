@@ -15,38 +15,39 @@ const uint8_t CMD_START = 0x01;
 const uint8_t CMD_SLEEP = 0x02;
 
 
+#define DUREE_LED   10000   // ms, la DEL reste allumee 10 s
+
+
+static const int PIN_LED[6] = { -1, PIN_ROSE, PIN_VERT, PIN_BLEU, PIN_JAUNE, PIN_ORANGE };
+static unsigned long debutLED[6] = { 0 };   // millis() quand la DEL a ete allumee, 0 = eteinte
+
+
 void allumerLED(int couleur)
 {
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
-    switch(couleur)
-    {
-        case CARTE_ROUGE:
-            digitalWrite(PIN_ROSE, LOW);
-            delay(7000);
-            digitalWrite(PIN_ROSE, HIGH);
-            break;
-        case CARTE_BLEU:
-            digitalWrite(PIN_BLEU, LOW);
-            delay(7000);
-            digitalWrite(PIN_BLEU, HIGH);
-            break;
-        case CARTE_VERT:
-            digitalWrite(PIN_VERT, LOW);
-            delay(7000);
-            digitalWrite(PIN_VERT, HIGH);
-            break;
-        case CARTE_JAUNE:
-            digitalWrite(PIN_JAUNE, LOW);
-            delay(7000);
-            digitalWrite(PIN_JAUNE, HIGH);
-            break;
-        case CARTE_ORANGE:
-            digitalWrite(PIN_ORANGE, LOW);
-            delay(7000);
-            digitalWrite(PIN_ORANGE, HIGH);
-            break;
+    if (couleur < CARTE_ROUGE || couleur > CARTE_ORANGE) return;
+
+    digitalWrite(PIN_LED[couleur], LOW);
+    debutLED[couleur] = millis();
+    if (debutLED[couleur] == 0) debutLED[couleur] = 1;   // 0 veut dire eteinte
+}
+
+// Eteint les DEL allumees depuis DUREE_LED. A appeler souvent (loop() et les boucles d'attente).
+void ledMiseAJour()
+{
+    for (int c = CARTE_ROUGE; c <= CARTE_ORANGE; c++) {
+        if (debutLED[c] != 0 && millis() - debutLED[c] >= DUREE_LED) {
+            digitalWrite(PIN_LED[c], HIGH);
+            debutLED[c] = 0;
+        }
     }
+}
+
+// delay() appelle yield() en boucle : les DEL s'eteignent a temps meme pendant un delay()
+void yield()
+{
+    ledMiseAJour();
 }
 
 // Lit la telecommande une fois. Retourne la commande valide, ou -1 si rien / invalide.
@@ -152,6 +153,7 @@ void yoinkGoblet() {
 
     // On se COLLE sur le verre, pis quand tu pognes en bas de 400, c que t'es collee sur le verre (<5 cm)
     while (distance > 400) {
+        ledMiseAJour();
         distance = analogRead(A7);
     }
     Serial.println("Coller dessus!");
@@ -246,6 +248,7 @@ static bool pivoterJusquaLigne(bool gauche, unsigned long ms) {
 
     unsigned long start = millis();
     while (millis() - start < ms) {
+        ledMiseAJour();
         if (analogRead(A2) > 400) {
             MOTOR_SetSpeed(LEFT, 0);
             MOTOR_SetSpeed(RIGHT, 0);

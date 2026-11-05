@@ -1,19 +1,61 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "PlatformIO",
             "includePath": [
-                "${workspaceFolder}/**"
+                "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/src",
+                "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/Adafruit TCS34725",
+                "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/Adafruit BusIO",
+                "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/LibRobus/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/variants/mega",
+                "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/lib/LibRobUS/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                ""
             ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/src",
+                    "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/Adafruit TCS34725",
+                    "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/Adafruit BusIO",
+                    "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/build/piolibdeps/megaatmega2560/LibRobus/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "/Users/snakebl1zzard/Documents/dev/Boeuf-N-Gus_Combattant/lib/LibRobUS/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/Users/snakebl1zzard/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    ""
+                ]
+            },
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "PLATFORMIO=60200",
+                "ARDUINO_AVR_MEGA2560",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega2560__",
+                ""
             ],
-            "compilerPath": "C:\\mingw64\\bin\\gcc.exe",
-            "cStandard": "gnu23",
-            "cppStandard": "gnu++20",
-            "intelliSenseMode": "windows-gcc-x64"
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++11",
+            "compilerPath": "/Users/snakebl1zzard/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega2560",
+                ""
+            ]
         }
     ],
     "version": 4

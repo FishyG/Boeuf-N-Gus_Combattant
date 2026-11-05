@@ -1,6 +1,7 @@
 // movements.cpp
 #include <LibRobus.h>
 #include "movements.h"
+#include "challenges.h"   // ledMiseAJour()
 
 #define PULSES_LEFT 2000
 #define PULSES_RIGHT 2000
@@ -93,6 +94,7 @@ void movePulses(int32_t left_target, int32_t right_target) {
         motor_right.target_pulses = (remR <= 0) ? 0 : dirR * ((remR > 2000) ? 300 : (remR > 1000) ? 150 : (remR > 300) ? 67 : 15);
 
         SOFT_TIMER_Update();
+        ledMiseAJour();
     }
 
     motor_left.target_pulses = 0;
@@ -100,6 +102,7 @@ void movePulses(int32_t left_target, int32_t right_target) {
     for (int i = 0; i < 250; i++) {
         delay(2);
         SOFT_TIMER_Update();
+        ledMiseAJour();
     }
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
@@ -149,6 +152,7 @@ void movePulsesQuick(int32_t left_target, int32_t right_target) {
     for (int i = 0; i < 250; i++) {
         delay(2);
         SOFT_TIMER_Update();
+        ledMiseAJour();
     }
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
@@ -177,6 +181,7 @@ void moveDistance(float distance_m) {
         }
 
         SOFT_TIMER_Update();
+        ledMiseAJour();
     }
 
     motor_left.target_pulses = 0;
@@ -185,6 +190,7 @@ void moveDistance(float distance_m) {
     for (int i = 0; i < 250; i++) {
         delay(2);
         SOFT_TIMER_Update();
+        ledMiseAJour();
     }
 
     SOFT_TIMER_Update();

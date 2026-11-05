@@ -104,6 +104,8 @@ void setup() {
     }
 
 void loop() {
+    ledMiseAJour();
+
     int u1 = analogRead(A1);
     int u2 = analogRead(A2);
     int u3 = analogRead(A3);
