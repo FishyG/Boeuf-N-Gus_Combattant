@@ -59,22 +59,49 @@ void setup() {
 
     delay(500);
 
-    Serial.println("BITCHASDD");
-    while (true) {
-        int cmd = lireCommandeIR();
-
-        if (cmd == CMD_START) {
-            Serial.println("Awake le bot");
-            for (int i = 0; i < 3; i++) {
-                AX_BuzzerON(1000, 150);
-                delay(300);
-            }
-            return;
+    while (1) {
+        Serial.println("Waiting...");
+        while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
+            delay(10);
         }
+        Serial.println("Fuck le mur");
+        delay(1000);
+        while (1) {
+            uint8_t r, g, b;
+            readFuckingRGB(r, g, b);
+            float h = rgbToHueBombaclat(r, g, b);
+            float s = rgbToSaturationPUSSYWAGAN(r, g, b);
 
-        delay(10);
+            Serial.print("R: ");
+            Serial.print(r);
+            Serial.print(", G: ");
+            Serial.print(g);
+            Serial.print(", B: ");
+            Serial.print(b);
+            Serial.print(", Hue ");
+            Serial.print(h);
+            Serial.print(", Sat ");
+            Serial.println(s);
+            delay(10);
+        }
     }
-}
+
+        Serial.println("BITCHASDD");
+        while (true) {
+            int cmd = lireCommandeIR();
+
+            if (cmd == CMD_START) {
+                Serial.println("Awake le bot");
+                for (int i = 0; i < 3; i++) {
+                    AX_BuzzerON(1000, 150);
+                    delay(300);
+                }
+                return;
+            }
+
+            delay(10);
+        }
+    }
 
 void loop() {
     int u1 = analogRead(A1);

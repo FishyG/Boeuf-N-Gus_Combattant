@@ -15,16 +15,17 @@
 #define hue_vert 226
 #define sat_vert 53
 #define hue_bleu 225
-#define sat_bleu 61
+#define sat_bleu 60
 #define hue_jaune 228
 #define sat_jaune 34
 #define hue_orange 247
 #define sat_orange 36
 
-#define DIST_MAX    4.0   // distance max (hue + sat) pour accepter une carte
-#define NB_CONFIRM  21     // lectures identiques de suite avant de changer la réponse // WHATS 9 + 10??
+#define DIST_MAX    1.0   // distance max (hue + sat) pour accepter une carte
+#define NB_CONFIRM  3     // lectures identiques de suite avant de changer la réponse // WHATS 9 + 10??
 
-static Adafruit_TCS34725 tcs(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_60X);
+//static Adafruit_TCS34725 tcs(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_60X);
+static Adafruit_TCS34725 tcs(TCS34725_INTEGRATIONTIME_24MS, TCS34725_GAIN_60X);
 
 bool couleurInit() {
   return tcs.begin();
