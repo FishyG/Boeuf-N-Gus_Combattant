@@ -195,19 +195,19 @@ void yoinkGoblet() {
 
 // Va probablement falloir que vous modifier le nombre de pulses, jvais me coucher, nicker vos races 
 void passeCoteMur() {
-    turnLeft90();
+    turnRight90();
     delay(250);
     movePulsesQuick(7000,7000);
     delay(250);
-    turnRight90();
+    turnLeft90();
     delay(250);
     movePulsesQuick(10500,10500);
     delay(250);
-    turnRight90();
+    turnLeft90();
     delay(250);
     movePulsesQuick(7000,7000);
     delay(250);
-    turnLeft90();
+    turnRight90();
     delay(250);
 }
 
