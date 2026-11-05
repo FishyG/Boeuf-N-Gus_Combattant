@@ -1,7 +1,40 @@
+#include <Arduino.h>
 #include "challenges.h"
 #include "movements.h"
 #include "color.h"
 #include "pince.h"
+
+const uint8_t ADRESSE_ATTENDUE = 0x17;
+const uint8_t CMD_START = 0x01;
+const uint8_t CMD_SLEEP = 0x02;
+
+// Lit la telecommande une fois. Retourne la commande valide, ou -1 si rien / invalide.
+int lireCommandeIR() {
+    uint32_t message = REMOTE_read();
+
+    if (message == 0 || message == 0xFFFFFFFF) {
+        return -1;
+    }
+
+    uint8_t adresse     = (message >> 24) & 0xFF;
+    uint8_t adresseInv  = (message >> 16) & 0xFF;
+    uint8_t commande    = (message >> 8) & 0xFF;
+    uint8_t commandeInv = message & 0xFF;
+
+    // Integrite du message
+    if (adresse != (uint8_t)~adresseInv || commande != (uint8_t)~commandeInv) {
+        Serial.println(" -> message non-integre");
+        return -1;
+    }
+
+    // Bonne adresse?
+    if (adresse != ADRESSE_ATTENDUE) {
+        Serial.println(" -> mauvaise adresse");
+        return -1;
+    }
+
+    return commande;
+}
 
 void slapQuille() {
     movePulsesQuick(-15600, 0);
@@ -123,22 +156,47 @@ void yoinkGoblet() {
 void passeCoteMur() {
     turnLeft90();
     delay(250);
-    movePulsesQuick(2000,2000);
+    movePulsesQuick(7000,7000);
     delay(250);
     turnRight90();
     delay(250);
-    movePulsesQuick(4000,4000);
+    movePulsesQuick(10000,10000);
     delay(250);
     turnRight90();
     delay(250);
-    movePulsesQuick(2000,2000);
+    movePulsesQuick(7000,7000);
     delay(250);
     turnLeft90();
     delay(250);
 }
 
 void faireDodoWakeUpManette(){
-    //PUT LE CODE HERE!
+
+    // Arret complet, et le PI repart propre apres
+    motor_left.speed = 0;
+    motor_right.speed = 0;
+    motor_left.target_pulses = 0;
+    motor_right.target_pulses = 0;
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
+
+    Serial.println("Dodo... en attente de CMD_SLEEP");
+
+    // Attend le signal de reveil
+    while (true) {
+        int cmd = lireCommandeIR();
+
+        if (cmd == CMD_SLEEP) {
+            Serial.println("Awake le bot");
+            for (int i = 0; i < 6; i++) {
+                AX_BuzzerON(1000, 75);
+                delay(150);
+            }
+            return;
+        }
+
+        delay(10);
+    }
 }
 
 static bool pivoterJusquaLigne(bool gauche, unsigned long ms) {
@@ -161,7 +219,7 @@ static bool pivoterJusquaLigne(bool gauche, unsigned long ms) {
 void traverserCanyon() {
     ENCODER_Reset(LEFT);
     ENCODER_Reset(RIGHT);
-    moveDistance(0.72);
+    moveDistance(0.85);
 
     for (int i = 0; i < 200; i++) {
         delay(10);
@@ -194,7 +252,6 @@ void traverserCanyon() {
 }
 
 static uint8_t epreuvesFaites = 0;  // bit n = carte n deja faite
-
 #define TOUTES_FAITES ((1 << CARTE_ROUGE) | (1 << CARTE_VERT) | (1 << CARTE_BLEU) | (1 << CARTE_JAUNE) | (1 << CARTE_ORANGE))
 
 bool toutEstFait() {

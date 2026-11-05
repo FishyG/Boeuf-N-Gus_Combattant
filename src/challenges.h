@@ -7,4 +7,5 @@ void slapQuille();
 void yoinkGoblet();
 void passeCoteMur();
 void faireDodoWakeUpManette();
+int lireCommandeIR();
 bool challengeRunner(int couleur);

@@ -27,7 +27,6 @@ void setup() {
     BoardInit(); // Balls XD
     couleurInit(); // DEVINE IL FAIT KOI SMART ASS
     movementsInit(); // Start mon pti timer and shit
-    couleurInit();
     pinceIdle(); // Set le servo droit
 
     pinMode(pin_rouge, INPUT);
@@ -35,20 +34,8 @@ void setup() {
 
     delay(500);
 
-    while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
+    while (((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT)))) {
         delay(10);
-    }
-
-    while (0) {
-        Serial.println("Waiting...");
-        while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
-            delay(10);
-        }
-
-        while (1) {
-            Serial.println(couleurScan());
-            delay(100);
-        }
     }
 }
 
