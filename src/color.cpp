@@ -21,8 +21,8 @@
 #define hue_orange 247
 #define sat_orange 36
 
-#define DIST_MAX    6.0   // distance max (hue + sat) pour accepter une carte
-#define NB_CONFIRM  3     // lectures identiques de suite avant de changer la réponse
+#define DIST_MAX    4.0   // distance max (hue + sat) pour accepter une carte
+#define NB_CONFIRM  21     // lectures identiques de suite avant de changer la réponse // WHATS 9 + 10??
 
 static Adafruit_TCS34725 tcs(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_60X);
 
