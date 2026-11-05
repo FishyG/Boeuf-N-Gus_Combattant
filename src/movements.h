@@ -20,7 +20,7 @@ enum TimerIDs {
 extern MotorParams motor_left;
 extern MotorParams motor_right;
 
-void movementsInit(); // C lui qui start le SOFT timer update
+void movementsInit(); // C lui qui start le SOFT timer 
 void updatePI();
 void moveDistance(float distance_m);
 void movePulses(int32_t left_target, int32_t right_target);

@@ -2,8 +2,8 @@
 #include <LibRobus.h>
 #include "movements.h"
 
-#define PULSES_LEFT 1700
-#define PULSES_RIGHT 1700
+#define PULSES_LEFT 2000
+#define PULSES_RIGHT 2000
 #define PULSES_PER_M 13367
 
 #define DISTANCE 0.495
@@ -58,44 +58,13 @@ void updatePI() {
 
 void turnLeft90() {
     Serial.println("Running turn left");
-
+    movePulses(-PULSES_LEFT, PULSES_RIGHT);
     Serial.println("done left");
 }
 
 void turnRight90() {
     Serial.println("Running turn right");
-    int32_t target_turn_pulses = PULSES_RIGHT;
-
-    motor_left.total_pulses = 0;
-    motor_right.total_pulses = 0;
-
-    motor_left.integral = 0;
-    motor_right.integral = 0;
-
-    while (motor_left.total_pulses < target_turn_pulses || -motor_right.total_pulses < target_turn_pulses) {
-        int32_t avg_pulses = (motor_left.total_pulses - motor_right.total_pulses) / 2;
-        int32_t remaining = target_turn_pulses - avg_pulses;
-
-        if (remaining > 500) {
-            motor_left.target_pulses = 200;
-            motor_right.target_pulses = -200;
-        } else if (remaining > 200) {
-            motor_left.target_pulses = 120;
-            motor_right.target_pulses = -120;
-        } else {
-            motor_left.target_pulses = 60;
-            motor_right.target_pulses = -60;
-        }
-
-        SOFT_TIMER_Update();
-    }
-
-    motor_left.target_pulses = 0;
-    motor_right.target_pulses = 0;
-    for (int i = 0; i < 250; i++) {
-        delay(2);
-        SOFT_TIMER_Update();
-    }
+    movePulses(PULSES_LEFT, -PULSES_RIGHT);
     Serial.println("done right");
 }
 
@@ -120,8 +89,8 @@ void movePulses(int32_t left_target, int32_t right_target) {
         int32_t remR = absR - abs(motor_right.total_pulses);
 
         // Chaque roue a son propre profil, et s'arrête quand elle a fini
-        motor_left.target_pulses = (remL <= 0) ? 0 : dirL * ((remL > 2000) ? 300 : (remL > 1000) ? 200 : (remL > 300) ? 75 : 20);
-        motor_right.target_pulses = (remR <= 0) ? 0 : dirR * ((remR > 2000) ? 300 : (remR > 1000) ? 200 : (remR > 300) ? 75 : 20);
+        motor_left.target_pulses = (remL <= 0) ? 0 : dirL * ((remL > 2000) ? 300 : (remL > 1000) ? 150 : (remL > 300) ? 67 : 15); // 67 xD
+        motor_right.target_pulses = (remR <= 0) ? 0 : dirR * ((remR > 2000) ? 300 : (remR > 1000) ? 150 : (remR > 300) ? 67 : 15);
 
         SOFT_TIMER_Update();
     }
@@ -132,10 +101,14 @@ void movePulses(int32_t left_target, int32_t right_target) {
         delay(2);
         SOFT_TIMER_Update();
     }
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
 }
 
 void movePulsesQuick(int32_t left_target, int32_t right_target) {
-    // Remise à zéro de tout (speed aussi, sinon il part avec l'ancienne vitesse)
+    const int32_t TOL = 10;            // tolérance en pulses
+    const uint32_t TIMEOUT_MS = 8000;  // sécurité si ça converge pas
+
     ENCODER_Reset(LEFT);
     ENCODER_Reset(RIGHT);
     motor_left.total_pulses = 0;
@@ -145,20 +118,30 @@ void movePulsesQuick(int32_t left_target, int32_t right_target) {
     motor_left.speed = 0;
     motor_right.speed = 0;
 
-    int dirL = (left_target >= 0) ? 1 : -1;
-    int dirR = (right_target >= 0) ? 1 : -1;
-    int32_t absL = abs(left_target);
-    int32_t absR = abs(right_target);
+    auto profile = [](int32_t rem) -> int32_t {
+        int32_t a = abs(rem);
+        int32_t v = (a > 2000) ? 500 : (a > 1000) ? 200 : (a > 300) ? 67 : 30;
+        return (rem >= 0) ? v : -v;
+    };
 
-    while (abs(motor_left.total_pulses) < absL || abs(motor_right.total_pulses) < absR) {
-        int32_t remL = absL - abs(motor_left.total_pulses);
-        int32_t remR = absR - abs(motor_right.total_pulses);
+    uint32_t start = millis();
+    int settled = 0;
 
-        // Chaque roue a son propre profil, et s'arrête quand elle a fini
-        motor_left.target_pulses = (remL <= 0) ? 0 : dirL * ((remL > 2000) ? 300 : (remL > 1000) ? 200 : (remL > 300) ? 75 : 20);
-        motor_right.target_pulses = (remR <= 0) ? 0 : dirR * ((remR > 2000) ? 300 : (remR > 1000) ? 200 : (remR > 300) ? 75 : 20);
+    while (settled < 3 && millis() - start < TIMEOUT_MS) {
+        int32_t remL = left_target - motor_left.total_pulses;
+        int32_t remR = right_target - motor_right.total_pulses;
+
+        motor_left.target_pulses = (abs(remL) <= TOL) ? 0 : profile(remL);
+        motor_right.target_pulses = (abs(remR) <= TOL) ? 0 : profile(remR);
+
+        // Il faut être dans la tolérance pendant quelques itérations de suite
+        if (abs(remL) <= TOL && abs(remR) <= TOL)
+            settled++;
+        else
+            settled = 0;
 
         SOFT_TIMER_Update();
+        delay(10);
     }
 
     motor_left.target_pulses = 0;
@@ -167,6 +150,8 @@ void movePulsesQuick(int32_t left_target, int32_t right_target) {
         delay(2);
         SOFT_TIMER_Update();
     }
+    MOTOR_SetSpeed(LEFT, 0);
+    MOTOR_SetSpeed(RIGHT, 0);
 }
 
 void moveDistance(float distance_m) {

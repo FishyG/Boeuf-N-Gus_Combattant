@@ -2,20 +2,10 @@
 #include "movements.h"
 
 void slapQuille() {
-    int32_t left_pulses = 0;
-    ENCODER_Reset(LEFT);
-    MOTOR_SetSpeed(LEFT, 0.3);
-    while (left_pulses < 10000) {
-        left_pulses = ENCODER_Read(LEFT);
-    }
-    MOTOR_SetSpeed(LEFT, 0.2);
-    while (left_pulses < 15670) {
-        left_pulses = ENCODER_Read(LEFT);
-    }
-    MOTOR_SetSpeed(LEFT, 0);
+    movePulsesQuick(-15600, 0);
 }
 
-void Goblet() {
+void yoinkGoblet() {
     int32_t rotate_pulses_left = 0;
     int32_t rotate_pulses_right = 0;
     int32_t reverse_pulses_left = 0;
@@ -131,4 +121,21 @@ void Goblet() {
     Serial.println("Stopage!");
     MOTOR_SetSpeed(LEFT, 0);
     MOTOR_SetSpeed(RIGHT, 0);
+}
+
+void passeCoteMur() {
+    turnLeft90();
+    delay(250);
+    movePulsesQuick(2000,2000);
+    delay(250);
+    turnRight90();
+    delay(250);
+    movePulsesQuick(4000,4000);
+    delay(250);
+    turnRight90();
+    delay(250);
+    movePulsesQuick(2000,2000);
+    delay(250);
+    turnLeft90();
+    delay(250);
 }

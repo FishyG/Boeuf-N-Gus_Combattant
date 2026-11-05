@@ -37,11 +37,11 @@ void setup() {
         while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
             delay(10);
         }
-        while (0) {
-            Serial.println("Turning");
+        while (1) {
+            Serial.println("Fuck le mur");
             Serial.println(ENCODER_Read(RIGHT));
             delay(100);
-            movePulses(500, -500);
+            passeCoteMur();
             delay(1000);
 
             Serial.println("Waiting...");
@@ -50,7 +50,7 @@ void setup() {
             }
         }
 
-        Goblet();
+        yoinkGoblet();
 
         Serial.println("Calling dropage!");
         delay(1000);

@@ -4,4 +4,5 @@
 #include "pince.h"
 
 void slapQuille();
-void Goblet();
+void yoinkGoblet();
+void passeCoteMur();
