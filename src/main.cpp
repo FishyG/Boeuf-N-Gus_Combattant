@@ -18,8 +18,8 @@ Inclure les librairies de functions que vous voulez utiliser
 #define pin_rouge 49
 #define pin_vert 48
 
-#define distance 0.495
-#define distance_1m 1
+#define DISTANCE 0.495
+#define DISTANCE_1M 1
 
 #define PULSES_PER_M 13367
 
@@ -28,7 +28,13 @@ void moveDistance(float distance_m);
 void turnLeft90();
 void turnRight90();
 int detection_mur();
+
+void pinceIdle();
+void pinceYoink();
+void pinceDrop();
+
 void slapQuille();
+void Goblet();
 
 // Les IDs des timers je les mets ici
 enum TimerIDs {
@@ -100,45 +106,50 @@ void setup() {
   delay(10);
 
   // Set le servo droit
-  SERVO_Enable(1);
-  SERVO_SetAngle(1, 20);
-  SERVO_Enable(0);
-  SERVO_SetAngle(0,0);
+  pinceIdle();
 
-  /*while (1) {
+  while (1) {
     Serial.println("Waiting...");
-    while (!ROBUS_IsBumper(REAR)) {
+    while ((!ROBUS_IsBumper(FRONT)) && (!ROBUS_IsBumper(REAR)) && (!ROBUS_IsBumper(LEFT)) && (!ROBUS_IsBumper(RIGHT))) {
       delay(10);
     }
-    Serial.println("Slapping");
+
+    while (0)
+    {
+      Serial.println(ENCODER_Read(RIGHT));
+      delay(100);
+    }
+
+    Serial.println("Yoinking the fuckass goblet");
+    delay(1500);
+    Goblet();
+
+    Serial.println("Calling dropage!");
     delay(1000);
-    slapQuille();
-  }*/
+    pinceDrop();
+    
+    Serial.println("Calling ressettage!");
+    delay(2000);
+    pinceIdle();
+    delay(1000);
+  }
   // Met le servo tilt more or less droit
-  SERVO_Enable(1);
-  SERVO_SetAngle(1, 20);
-  SERVO_Enable(0);
-  SERVO_SetAngle(0,0);
+  pinceIdle();
 
   Serial.println("Waiting...");
   while (!ROBUS_IsBumper(REAR)) {
     delay(10);
   }
   Serial.println("Pognage!");
-  delay(1000);
-  SERVO_SetAngle(0,178);
-  delay(750);
-  SERVO_SetAngle(1,0);
+  pinceYoink();
 
   Serial.println("Waiting...");
   while (!ROBUS_IsBumper(REAR)) {
     delay(10);
   }
   Serial.println("Dropage!");
-  delay(1000);
-  SERVO_SetAngle(1, 23);
-  delay(500);
-  SERVO_SetAngle(0,0);
+  pinceDrop();
+
   Serial.println("Done!");
   while (1)
   {
@@ -178,6 +189,154 @@ void slapQuille() {
     left_pulses = ENCODER_Read(LEFT);
   }
   MOTOR_SetSpeed(LEFT, 0); 
+}
+
+void Goblet() {
+	int Pulse_tourne_LEFT = 0;
+	int Pulse_tourne_RIGHT = 0;
+	int Pulse_recule_LEFT = 0;
+	int Pulse_recule_RIGHT = 0;
+	int Pulse_retourne_LEFT = 0;
+	int Pulse_retourne_RIGHT = 0;
+	int Pulse_avance_LEFT = 0;
+	int Pulse_avance_RIGHT = 0;
+	int distance = 0;
+
+  Serial.println("Cherchage!");
+	ENCODER_Reset(LEFT);
+	ENCODER_Reset(RIGHT);
+	MOTOR_SetSpeed(LEFT, -0.1);
+	MOTOR_SetSpeed(RIGHT, 0.1);
+	
+	while ( distance < 300) {
+		Pulse_tourne_LEFT = ENCODER_Read(LEFT);
+		Pulse_tourne_RIGHT = ENCODER_Read(RIGHT);
+		distance = analogRead(A7);
+    delay(20);
+	}
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  Serial.println("Stopage!");
+  MOTOR_SetSpeed(LEFT, 0);
+	MOTOR_SetSpeed(RIGHT, 0);
+  delay(250);
+
+  Serial.println("Remettage sur l'alignage!");
+  distance = 0;
+  MOTOR_SetSpeed(LEFT, 0.05);
+	MOTOR_SetSpeed(RIGHT, -0.05);
+  while ( distance < 300) {
+		Pulse_tourne_LEFT = ENCODER_Read(LEFT);
+		Pulse_tourne_RIGHT = ENCODER_Read(RIGHT);
+		distance = analogRead(A7);
+    delay(20);
+	}
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  Serial.println("Reculage pour setupage!");
+  distance = 0;
+	ENCODER_Reset(LEFT);
+	ENCODER_Reset(RIGHT);
+	MOTOR_SetSpeed(LEFT, -0.1);
+	MOTOR_SetSpeed(RIGHT, -0.1);
+	
+	while (distance < 600){
+		Pulse_recule_LEFT = ENCODER_Read(LEFT);
+		Pulse_recule_RIGHT = ENCODER_Read(RIGHT);
+		distance = analogRead(A7);
+	}
+  Serial.print("Distance: ");
+  Serial.println(distance);
+	
+  while (distance > 540){
+		Pulse_recule_LEFT = ENCODER_Read(LEFT);
+		Pulse_recule_RIGHT = ENCODER_Read(RIGHT);
+		distance = analogRead(A7);
+	}
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+	/*recule_difference*/
+  Serial.println("Reculage diff!");
+  MOTOR_SetSpeed(LEFT, -0.1);
+	MOTOR_SetSpeed(RIGHT, -0.1);
+  delay(250);
+  MOTOR_SetSpeed(LEFT, 0);
+	MOTOR_SetSpeed(RIGHT, 0);
+	
+	/*fermer_Pince*/
+  Serial.println("Calling pognage!");
+  delay(1000);
+  pinceYoink();
+	
+	/*avance_difference*/
+  Serial.println("Avancage diff!");
+	MOTOR_SetSpeed(LEFT, 0.1);
+	MOTOR_SetSpeed(RIGHT, 0.1);
+  delay(500);
+  MOTOR_SetSpeed(LEFT, 0.2);
+	MOTOR_SetSpeed(RIGHT, 0.2);
+  delay(750);
+
+
+  Serial.println("Retoutnage!");
+	ENCODER_Reset(LEFT);
+	ENCODER_Reset(RIGHT);
+	MOTOR_SetSpeed(LEFT,0.1);
+	MOTOR_SetSpeed(RIGHT,0.1);
+	
+  Serial.println("Idk dawg!");
+	while (Pulse_avance_LEFT < Pulse_recule_LEFT && Pulse_avance_RIGHT < Pulse_recule_RIGHT) {
+	
+	Pulse_avance_LEFT = ENCODER_Read(LEFT);
+	Pulse_avance_RIGHT = ENCODER_Read(RIGHT);
+	}
+	
+	ENCODER_Reset(LEFT);
+	ENCODER_Reset(RIGHT);
+	MOTOR_SetSpeed(LEFT,-0.2);
+	MOTOR_SetSpeed(RIGHT,0.2);
+	
+	while (Pulse_retourne_LEFT < Pulse_tourne_LEFT && Pulse_retourne_RIGHT < Pulse_tourne_RIGHT) {
+	
+	Pulse_retourne_LEFT = ENCODER_Read(LEFT);
+	Pulse_retourne_RIGHT = ENCODER_Read(RIGHT);
+	}
+
+  Serial.println("Stopage!");
+  MOTOR_SetSpeed(LEFT,0);
+	MOTOR_SetSpeed(RIGHT,0);
+}
+
+void pinceYoink() {
+  Serial.println("Pognage!");
+  SERVO_Enable(0);
+  SERVO_SetAngle(0,178); // Ferme la pince
+  delay(750);
+  SERVO_Enable(1);
+  SERVO_SetAngle(1,0); // Leve la réguine
+  delay(200);
+}
+
+void pinceDrop() {
+  Serial.println("Dropage!");
+  SERVO_Enable(1);
+  SERVO_SetAngle(1, 20); // Baisse la réguine
+  delay(500);
+  SERVO_Enable(0);
+  SERVO_SetAngle(0, 35); // Ouvre la pince
+  delay(100);
+}
+
+void pinceIdle() {
+  Serial.println("Idleage!");
+  SERVO_Enable(1);
+  SERVO_SetAngle(1, 20); // Baisse la réguine
+  SERVO_Enable(0);
+  SERVO_SetAngle(0, 35); // Ouvre la pince
+  delay(250);
 }
 
 // PI(pas de D) pour les moteurs
